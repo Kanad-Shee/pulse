@@ -1,0 +1,60 @@
+@import "tailwindcss";
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('/fonts/inter-latin-normal.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style: italic;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('/fonts/inter-latin-italic.woff2') format('woff2');
+}
+
+@theme {
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  user-select: none;
+  background-color: #f8fafc;
+  color: #0f172a;
+}
+
+.dark html,
+.dark body {
+  background-color: #141414;
+  color: #ededed;
+}
+
+/* Prevent buttons and their children from unexpectedly wrapping text */
+button,
+button * {
+  white-space: nowrap;
+}
+
+button.allow-wrap,
+button .allow-wrap {
+  white-space: normal;
+}
+
+/* Ensure completely transparent background for floating overlay modal */
+html.overlay-window,
+html.overlay-window body,
+body.overlay-window,
+body.overlay-window #root {
+  background: transparent !important;
+  background-color: transparent !important;
+  overflow: hidden !important;
+}
