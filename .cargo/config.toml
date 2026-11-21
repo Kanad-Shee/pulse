@@ -1,3 +1,11 @@
 [http]
 multiplexing = false
 timeout = 30
+
+[registries.crates-io]
+protocol = "sparse"
+
+[env]
+GGML_AVX = "ON"
+GGML_AVX2 = "ON"
+GGML_FMA = "ON"

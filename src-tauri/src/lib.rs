@@ -120,12 +120,134 @@ pub fn run() {
                                     };
                                     setup_and_show_overlay(app, &adv_cfg);
 
+                                    let active_model_id = {
+                                        let guard = app_state.active_model_id.lock().unwrap();
+                                        guard.clone()
+                                    };
+                                    let is_streaming = crate::models::is_streaming_model(&active_model_id);
+
+                                    {
+                                        let mut st = app_state.streaming_transcript.lock().unwrap();
+                                        st.clear();
+                                    }
+
+                                    if is_streaming {
+                                        if let Ok((_, ref loaded)) = transcriber::get_or_load_model(&app, &app_state) {
+                                            transcriber::reset_streaming_model(loaded);
+                                        }
+                                    }
+
                                     let _ = app_state
                                         .audio_controller
                                         .start_recording(Some(app.clone()));
+
+                                    let app_clone = app.clone();
+                                    if is_streaming {
+                                        // True live chunked streaming loop (560ms / 8960 samples per chunk)
+                                        tauri::async_runtime::spawn(async move {
+                                            let mut offset = 0usize;
+                                            let mut accumulated = Vec::<f32>::new();
+
+                                            while app_clone.state::<AppState>().is_recording.load(Ordering::SeqCst) {
+                                                tokio::time::sleep(std::time::Duration::from_millis(150)).await;
+                                                let state = app_clone.state::<AppState>();
+                                                if !state.is_recording.load(Ordering::SeqCst) {
+                                                    break;
+                                                }
+
+                                                let (new_samples, new_offset) = state.audio_controller.read_since(offset);
+                                                offset = new_offset;
+                                                if !new_samples.is_empty() {
+                                                    accumulated.extend_from_slice(&new_samples);
+                                                }
+
+                                                let chunk_size = 8960;
+                                                if accumulated.len() >= chunk_size {
+                                                    if let Ok((_, loaded)) = transcriber::get_or_load_model(&app_clone, &state) {
+                                                        while accumulated.len() >= chunk_size {
+                                                            let chunk: Vec<f32> = accumulated.drain(..chunk_size).collect();
+                                                            if let Ok(part) = transcriber::run_streaming_chunk(&loaded, &chunk) {
+                                                                if !part.is_empty() {
+                                                                    let current_text = {
+                                                                        let mut st = state.streaming_transcript.lock().unwrap();
+                                                                        st.push_str(&part);
+                                                                        st.clone()
+                                                                    };
+                                                                    let show_live = {
+                                                                        let cfg = state.advanced_config.lock().unwrap();
+                                                                        cfg.overlay_mode == "live"
+                                                                    };
+                                                                    if show_live {
+                                                                        let _ = app_clone.emit(
+                                                                            "overlay-preview",
+                                                                            serde_json::json!({ "text": current_text }),
+                                                                        );
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        });
+                                    } else {
+                                        // Snapshot-based preview for non-streaming models
+                                        tauri::async_runtime::spawn(async move {
+                                            let mut last_len: usize = 0;
+                                            loop {
+                                                tokio::time::sleep(std::time::Duration::from_millis(900))
+                                                    .await;
+                                                let state = app_clone.state::<AppState>();
+                                                if !state.is_recording.load(Ordering::SeqCst) {
+                                                    break;
+                                                }
+
+                                                let snapshot = state.audio_controller.snapshot_samples();
+                                                if snapshot.len() >= last_len + 8000 {
+                                                    last_len = snapshot.len();
+                                                    let canary_langs = {
+                                                        let src = state.canary_source_lang.lock().unwrap().clone();
+                                                        let tgt = state.canary_target_lang.lock().unwrap().clone();
+                                                        Some((src, tgt))
+                                                    };
+                                                    if let Ok((model_id, model)) =
+                                                        transcriber::get_or_load_model(&app_clone, &state)
+                                                    {
+                                                        if let Ok(preview_text) =
+                                                            transcriber::run_transcription(
+                                                                model, model_id, snapshot, canary_langs, None,
+                                                            )
+                                                            .await
+                                                        {
+                                                            let show_live = {
+                                                                let cfg = state.advanced_config.lock().unwrap();
+                                                                cfg.overlay_mode == "live"
+                                                            };
+                                                            if show_live
+                                                                && state.is_recording.load(Ordering::SeqCst)
+                                                                && !preview_text.trim().is_empty()
+                                                            {
+                                                                let _ = app_clone.emit(
+                                                                    "overlay-preview",
+                                                                    serde_json::json!({
+                                                                        "text": preview_text
+                                                                    }),
+                                                                );
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        });
+                                    }
                                 }
                             } else if event.state() == ShortcutState::Released {
                                 if app_state.is_recording.swap(false, Ordering::SeqCst) {
+                                    // Hide overlay immediately for instant UI feedback
+                                    if let Some(overlay) = app.get_webview_window("overlay") {
+                                        let _ = overlay.hide();
+                                    }
+
                                     if let Some(tray) = app.tray_by_id("main") {
                                         let _ = tray.set_tooltip(Some("Pulse: Transcribing..."));
                                     }
@@ -149,20 +271,44 @@ pub fn run() {
                                                 };
 
                                                 if !samples.is_empty() {
-                                                    match transcriber::get_or_load_model(
-                                                        &app_clone, &state,
-                                                    ) {
-                                                        Ok((model_id, model)) => {
-                                                            let canary_langs = {
-                                                                let src = state.canary_source_lang.lock().unwrap().clone();
-                                                                let tgt = state.canary_target_lang.lock().unwrap().clone();
-                                                                Some((src, tgt))
-                                                            };
-                                                            match transcriber::run_transcription(
-                                                                model, model_id.clone(), samples, canary_langs, Some(adv_cfg.clone()),
-                                                            )
-                                                            .await
-                                                            {
+                                                    let active_model_id = state.active_model_id.lock().unwrap().clone();
+                                                    let is_streaming = crate::models::is_streaming_model(&active_model_id);
+
+                                                    let transcription_result = if is_streaming {
+                                                        let flushed = match transcriber::get_or_load_model(&app_clone, &state) {
+                                                            Ok((_, ref loaded)) => transcriber::finish_streaming_model(loaded).unwrap_or_default(),
+                                                            Err(_) => String::new(),
+                                                        };
+                                                        let streamed = if !flushed.is_empty() {
+                                                            flushed
+                                                        } else {
+                                                            state.streaming_transcript.lock().unwrap().clone()
+                                                        };
+                                                        if !streamed.trim().is_empty() {
+                                                            Ok(streamed)
+                                                        } else {
+                                                            match transcriber::get_or_load_model(&app_clone, &state) {
+                                                                Ok((model_id, model)) => {
+                                                                    transcriber::run_transcription(model, model_id, samples, None, Some(adv_cfg.clone())).await
+                                                                }
+                                                                Err(e) => Err(e),
+                                                            }
+                                                        }
+                                                    } else {
+                                                        let canary_langs = {
+                                                            let src = state.canary_source_lang.lock().unwrap().clone();
+                                                            let tgt = state.canary_target_lang.lock().unwrap().clone();
+                                                            Some((src, tgt))
+                                                        };
+                                                        match transcriber::get_or_load_model(&app_clone, &state) {
+                                                            Ok((model_id, model)) => {
+                                                                transcriber::run_transcription(model, model_id, samples, canary_langs, Some(adv_cfg.clone())).await
+                                                            }
+                                                            Err(e) => Err(e),
+                                                        }
+                                                    };
+
+                                                    match transcription_result {
                                                                 Ok(text) => {
                                                                     if !text.trim().is_empty() {
                                                                         let trimmed =
@@ -208,7 +354,7 @@ pub fn run() {
                                                                             &app_clone,
                                                                             &state,
                                                                             final_text.clone(),
-                                                                            model_id,
+                                                                            active_model_id,
                                                                         );
                                                                         if let Err(e) =
                                                                             injector::inject_text(
@@ -229,11 +375,6 @@ pub fn run() {
                                                                     );
                                                                 }
                                                             }
-                                                        }
-                                                        Err(e) => {
-                                                            eprintln!("Model load failed: {e}");
-                                                        }
-                                                    }
                                                 }
                                             }
                                             Err(e) => {
@@ -311,20 +452,16 @@ pub fn run() {
                                     let guard = app_state.active_model_id.lock().unwrap();
                                     guard.clone()
                                 };
-                                let is_nemotron = active_model_id == "nemotron-streaming-3.5";
+                                let is_streaming = crate::models::is_streaming_model(&active_model_id);
 
                                 {
                                     let mut st = app_state.streaming_transcript.lock().unwrap();
                                     st.clear();
                                 }
 
-                                if is_nemotron {
+                                if is_streaming {
                                     if let Ok((_, ref loaded)) = transcriber::get_or_load_model(&app, &app_state) {
-                                        if let crate::state::LoadedModel::Nemotron(n_mutex) = loaded {
-                                            if let Ok(mut n) = n_mutex.lock() {
-                                                n.reset();
-                                            }
-                                        }
+                                        transcriber::reset_streaming_model(loaded);
                                     }
                                 }
 
@@ -333,8 +470,8 @@ pub fn run() {
                                     .start_recording(Some(app.clone()));
 
                                 let app_clone = app.clone();
-                                if is_nemotron {
-                                    // True live chunked streaming loop for Nemotron (560ms / 8960 samples per chunk)
+                                if is_streaming {
+                                    // True live chunked streaming loop (560ms / 8960 samples per chunk)
                                     tauri::async_runtime::spawn(async move {
                                         let mut offset = 0usize;
                                         let mut accumulated = Vec::<f32>::new();
@@ -352,28 +489,27 @@ pub fn run() {
                                                 accumulated.extend_from_slice(&new_samples);
                                             }
 
-                                            if accumulated.len() >= 8960 {
+                                            let chunk_size = 8960;
+                                            if accumulated.len() >= chunk_size {
                                                 if let Ok((_, loaded)) = transcriber::get_or_load_model(&app_clone, &state) {
-                                                    if let crate::state::LoadedModel::Nemotron(nemotron_mutex) = loaded {
-                                                        while accumulated.len() >= 8960 {
-                                                            let chunk: Vec<f32> = accumulated.drain(..8960).collect();
-                                                            if let Ok(part) = transcriber::run_nemotron_chunk(&nemotron_mutex, &chunk) {
-                                                                if !part.is_empty() {
-                                                                    let current_text = {
-                                                                        let mut st = state.streaming_transcript.lock().unwrap();
-                                                                        st.push_str(&part);
-                                                                        st.clone()
-                                                                    };
-                                                                    let show_live = {
-                                                                        let cfg = state.advanced_config.lock().unwrap();
-                                                                        cfg.overlay_mode == "live"
-                                                                    };
-                                                                    if show_live {
-                                                                        let _ = app_clone.emit(
-                                                                            "overlay-preview",
-                                                                            serde_json::json!({ "text": current_text }),
-                                                                        );
-                                                                    }
+                                                    while accumulated.len() >= chunk_size {
+                                                        let chunk: Vec<f32> = accumulated.drain(..chunk_size).collect();
+                                                        if let Ok(part) = transcriber::run_streaming_chunk(&loaded, &chunk) {
+                                                            if !part.is_empty() {
+                                                                let current_text = {
+                                                                    let mut st = state.streaming_transcript.lock().unwrap();
+                                                                    st.push_str(&part);
+                                                                    st.clone()
+                                                                };
+                                                                let show_live = {
+                                                                    let cfg = state.advanced_config.lock().unwrap();
+                                                                    cfg.overlay_mode == "live"
+                                                                };
+                                                                if show_live {
+                                                                    let _ = app_clone.emit(
+                                                                        "overlay-preview",
+                                                                        serde_json::json!({ "text": current_text }),
+                                                                    );
                                                                 }
                                                             }
                                                         }
@@ -465,10 +601,18 @@ pub fn run() {
 
                                             if !samples.is_empty() {
                                                 let active_model_id = state.active_model_id.lock().unwrap().clone();
-                                                let is_nemotron = active_model_id == "nemotron-streaming-3.5";
+                                                let is_streaming = crate::models::is_streaming_model(&active_model_id);
 
-                                                let transcription_result = if is_nemotron {
-                                                    let streamed = state.streaming_transcript.lock().unwrap().clone();
+                                                let transcription_result = if is_streaming {
+                                                    let flushed = match transcriber::get_or_load_model(&app_clone, &state) {
+                                                        Ok((_, ref loaded)) => transcriber::finish_streaming_model(loaded).unwrap_or_default(),
+                                                        Err(_) => String::new(),
+                                                    };
+                                                    let streamed = if !flushed.is_empty() {
+                                                        flushed
+                                                    } else {
+                                                        state.streaming_transcript.lock().unwrap().clone()
+                                                    };
                                                     if !streamed.trim().is_empty() {
                                                         Ok(streamed)
                                                     } else {

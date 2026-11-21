@@ -1,7 +1,14 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 
-export type ModelEngine = "whisper" | "parakeet" | "canary" | "nemotron";
+export type ModelEngine =
+  | "whisper"
+  | "parakeet"
+  | "canary"
+  | "nemotron"
+  | "unified"
+  | "multitalker"
+  | "moonshine";
 
 export interface ModelInfo {
   id: string;
@@ -18,6 +25,7 @@ export interface ModelInfo {
   engine: ModelEngine;
   is_recommended: boolean;
   is_streaming: boolean;
+  streaming?: boolean;
   can_translate: boolean;
 }
 

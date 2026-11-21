@@ -13,6 +13,9 @@ pub enum ModelEngine {
     Parakeet,
     Canary,
     Nemotron,
+    Unified,
+    Multitalker,
+    Moonshine,
 }
 
 #[derive(Debug, Clone)]
@@ -34,6 +37,229 @@ pub struct CatalogItem {
 }
 
 pub const CATALOG: &[CatalogItem] = &[
+    CatalogItem {
+        id: "parakeet-unified-en-0.6b",
+        name: "Parakeet Unified EN 0.6B",
+        filename: "parakeet-unified-en-0.6b",
+        subtitle: "Fast, accurate live English transcription",
+        description: "Fast, accurate live English transcription",
+        size_mb: 664,
+        accuracy: 95,
+        speed: 92,
+        languages: "English only",
+        engine: ModelEngine::Unified,
+        is_recommended: false,
+        is_streaming: true,
+        can_translate: false,
+        files: &[
+            (
+                "https://huggingface.co/eschmidbauer/parakeet-unified-en-0.6b-onnx/resolve/main/onnx_int8/encoder.int8.onnx",
+                "encoder.int8.onnx",
+            ),
+            (
+                "https://huggingface.co/eschmidbauer/parakeet-unified-en-0.6b-onnx/resolve/main/onnx_int8/decoder_joint.int8.onnx",
+                "decoder_joint.int8.onnx",
+            ),
+            (
+                "https://huggingface.co/eschmidbauer/parakeet-unified-en-0.6b-onnx/resolve/main/onnx_int8/tokenizer.model",
+                "tokenizer.model",
+            ),
+        ],
+    },
+    CatalogItem {
+        id: "nemotron-speech-streaming-en",
+        name: "Nemotron Speech Streaming EN",
+        filename: "nemotron-speech-streaming-en",
+        subtitle: "English speech-to-text with streaming, token-level timestamps.",
+        description: "English speech-to-text with streaming, token-level timestamps.",
+        size_mb: 891,
+        accuracy: 94,
+        speed: 94,
+        languages: "English only",
+        engine: ModelEngine::Nemotron,
+        is_recommended: false,
+        is_streaming: true,
+        can_translate: false,
+        files: &[
+            (
+                "https://huggingface.co/lokkju/nemotron-speech-streaming-en-0.6b-int8/resolve/main/encoder.onnx",
+                "encoder.onnx",
+            ),
+            (
+                "https://huggingface.co/lokkju/nemotron-speech-streaming-en-0.6b-int8/resolve/main/decoder_joint.onnx",
+                "decoder_joint.onnx",
+            ),
+            (
+                "https://huggingface.co/lokkju/nemotron-speech-streaming-en-0.6b-int8/resolve/main/tokenizer.model",
+                "tokenizer.model",
+            ),
+        ],
+    },
+    CatalogItem {
+        id: "multitalker-parakeet-streaming-en",
+        name: "Multitalker Parakeet Streaming EN",
+        filename: "multitalker-parakeet-streaming-en",
+        subtitle: "English speech-to-text with streaming, token-level timestamps.",
+        description: "English speech-to-text with streaming, token-level timestamps.",
+        size_mb: 700,
+        accuracy: 93,
+        speed: 93,
+        languages: "English only",
+        engine: ModelEngine::Multitalker,
+        is_recommended: false,
+        is_streaming: true,
+        can_translate: false,
+        files: &[
+            (
+                "https://huggingface.co/smcleod/multitalker-parakeet-streaming-0.6b-v1-onnx-int8/resolve/main/encoder.int8.onnx",
+                "encoder.int8.onnx",
+            ),
+            (
+                "https://huggingface.co/smcleod/multitalker-parakeet-streaming-0.6b-v1-onnx-int8/resolve/main/decoder_joint.int8.onnx",
+                "decoder_joint.int8.onnx",
+            ),
+            (
+                "https://huggingface.co/smcleod/multitalker-parakeet-streaming-0.6b-v1-onnx-int8/resolve/main/tokenizer.model",
+                "tokenizer.model",
+            ),
+            (
+                "https://huggingface.co/smcleod/multitalker-parakeet-streaming-0.6b-v1-onnx-int8/resolve/main/multitalker_config.json",
+                "config.json",
+            ),
+        ],
+    },
+    CatalogItem {
+        id: "moonshine-streaming-medium",
+        name: "Moonshine Streaming Medium",
+        filename: "moonshine-streaming-medium",
+        subtitle: "English speech-to-text with streaming.",
+        description: "English speech-to-text with streaming.",
+        size_mb: 282,
+        accuracy: 91,
+        speed: 95,
+        languages: "English only",
+        engine: ModelEngine::Moonshine,
+        is_recommended: false,
+        is_streaming: true,
+        can_translate: false,
+        files: &[
+            (
+                "https://huggingface.co/Immortalizer/moonshine-streaming-medium-onnx/resolve/main/encoder_model_quantized.onnx",
+                "encoder_model_int8.onnx",
+            ),
+            (
+                "https://huggingface.co/Immortalizer/moonshine-streaming-medium-onnx/resolve/main/decoder_model_merged_quantized.onnx",
+                "decoder_model_int8.onnx",
+            ),
+            (
+                "https://huggingface.co/UsefulSensors/moonshine-streaming-medium/resolve/main/tokenizer.json",
+                "tokenizer.json",
+            ),
+            (
+                "https://huggingface.co/UsefulSensors/moonshine-streaming-medium/resolve/main/config.json",
+                "config.json",
+            ),
+        ],
+    },
+    CatalogItem {
+        id: "moonshine-streaming-small",
+        name: "Moonshine Streaming Small",
+        filename: "moonshine-streaming-small",
+        subtitle: "English speech-to-text with streaming.",
+        description: "English speech-to-text with streaming.",
+        size_mb: 189,
+        accuracy: 88,
+        speed: 97,
+        languages: "English only",
+        engine: ModelEngine::Moonshine,
+        is_recommended: false,
+        is_streaming: true,
+        can_translate: false,
+        files: &[
+            (
+                "https://huggingface.co/Mazino0/moonshine-streaming-small-onnx/resolve/main/encoder_model_int8.onnx",
+                "encoder_model_int8.onnx",
+            ),
+            (
+                "https://huggingface.co/Mazino0/moonshine-streaming-small-onnx/resolve/main/decoder_model_int8.onnx",
+                "decoder_model_int8.onnx",
+            ),
+            (
+                "https://huggingface.co/Mazino0/moonshine-streaming-small-onnx/resolve/main/tokenizer.json",
+                "tokenizer.json",
+            ),
+            (
+                "https://huggingface.co/UsefulSensors/moonshine-streaming-small/resolve/main/config.json",
+                "config.json",
+            ),
+        ],
+    },
+    CatalogItem {
+        id: "moonshine-streaming-tiny",
+        name: "Moonshine Streaming Tiny",
+        filename: "moonshine-streaming-tiny",
+        subtitle: "Ultra-light English speech-to-text with streaming.",
+        description: "Ultra-light English speech-to-text with streaming.",
+        size_mb: 48,
+        accuracy: 82,
+        speed: 99,
+        languages: "English only",
+        engine: ModelEngine::Moonshine,
+        is_recommended: false,
+        is_streaming: true,
+        can_translate: false,
+        files: &[
+            (
+                "https://huggingface.co/felixem/moonshine-streaming-tiny-optimized/resolve/main/onnx_int8/encoder_model_int8.onnx",
+                "encoder_model_int8.onnx",
+            ),
+            (
+                "https://huggingface.co/felixem/moonshine-streaming-tiny-optimized/resolve/main/onnx_int8/decoder_model_int8.onnx",
+                "decoder_model_int8.onnx",
+            ),
+            (
+                "https://huggingface.co/UsefulSensors/moonshine-streaming-tiny/resolve/main/tokenizer.json",
+                "tokenizer.json",
+            ),
+            (
+                "https://huggingface.co/UsefulSensors/moonshine-streaming-tiny/resolve/main/config.json",
+                "config.json",
+            ),
+        ],
+    },
+    CatalogItem {
+        id: "nemotron-streaming-3.5",
+        name: "Nemotron Streaming 3.5",
+        filename: "nemotron-streaming-3.5",
+        subtitle: "Live multilingual transcription across 28 languages",
+        description: "Live multilingual transcription across 28 languages",
+        size_mb: 716,
+        accuracy: 93,
+        speed: 90,
+        languages: "28 languages",
+        engine: ModelEngine::Nemotron,
+        is_recommended: true,
+        is_streaming: true,
+        can_translate: false,
+        files: &[
+            (
+                "https://huggingface.co/Gimics/nemotron-3.5-asr-streaming-0.6b-onnx-int8/resolve/main/encoder.int8.onnx",
+                "encoder.onnx",
+            ),
+            (
+                "https://huggingface.co/Gimics/nemotron-3.5-asr-streaming-0.6b-onnx-int8/resolve/main/decoder_joint.int8.onnx",
+                "decoder_joint.onnx",
+            ),
+            (
+                "https://huggingface.co/Gimics/nemotron-3.5-asr-streaming-0.6b-onnx-int8/resolve/main/tokenizer.model",
+                "tokenizer.model",
+            ),
+            (
+                "https://huggingface.co/Gimics/nemotron-3.5-asr-streaming-0.6b-onnx-int8/resolve/main/config.json",
+                "config.json",
+            ),
+        ],
+    },
     CatalogItem {
         id: "parakeet-tdt-0.6b-v3",
         name: "Parakeet TDT 0.6B v3",
@@ -82,7 +308,7 @@ pub const CATALOG: &[CatalogItem] = &[
         speed: 96,
         languages: "4 languages",
         engine: ModelEngine::Canary,
-        is_recommended: true,
+        is_recommended: false,
         is_streaming: false,
         can_translate: true,
         files: &[
@@ -100,39 +326,6 @@ pub const CATALOG: &[CatalogItem] = &[
             ),
             (
                 "https://huggingface.co/istupakov/canary-180m-flash-onnx/resolve/main/config.json",
-                "config.json",
-            ),
-        ],
-    },
-    CatalogItem {
-        id: "nemotron-streaming-3.5",
-        name: "Nemotron Streaming 3.5",
-        filename: "nemotron-streaming-3.5",
-        subtitle: "Live multilingual transcription across 28 languages",
-        description: "Live multilingual transcription across 28 languages",
-        size_mb: 716,
-        accuracy: 90,
-        speed: 88,
-        languages: "28 languages",
-        engine: ModelEngine::Nemotron,
-        is_recommended: true,
-        is_streaming: true,
-        can_translate: false,
-        files: &[
-            (
-                "https://huggingface.co/Gimics/nemotron-3.5-asr-streaming-0.6b-onnx-int8/resolve/main/encoder.int8.onnx",
-                "encoder.onnx",
-            ),
-            (
-                "https://huggingface.co/Gimics/nemotron-3.5-asr-streaming-0.6b-onnx-int8/resolve/main/decoder_joint.int8.onnx",
-                "decoder_joint.onnx",
-            ),
-            (
-                "https://huggingface.co/Gimics/nemotron-3.5-asr-streaming-0.6b-onnx-int8/resolve/main/tokenizer.model",
-                "tokenizer.model",
-            ),
-            (
-                "https://huggingface.co/Gimics/nemotron-3.5-asr-streaming-0.6b-onnx-int8/resolve/main/config.json",
                 "config.json",
             ),
         ],
@@ -194,6 +387,25 @@ pub const CATALOG: &[CatalogItem] = &[
             "ggml-small.en.bin",
         )],
     },
+    CatalogItem {
+        id: "ggml-large-v3-turbo-q5_0.bin",
+        name: "Whisper Large v3 Turbo",
+        filename: "ggml-large-v3-turbo-q5_0.bin",
+        subtitle: "Slow on CPU — use Parakeet/Canary for fast local dictation",
+        description: "Slow on CPU — use Parakeet/Canary for fast local dictation",
+        size_mb: 574,
+        accuracy: 94,
+        speed: 35,
+        languages: "100 languages",
+        engine: ModelEngine::Whisper,
+        is_recommended: false,
+        is_streaming: false,
+        can_translate: true,
+        files: &[(
+            "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo-q5_0.bin",
+            "ggml-large-v3-turbo-q5_0.bin",
+        )],
+    },
 ];
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -212,6 +424,8 @@ pub struct ModelInfo {
     pub engine: ModelEngine,
     pub is_recommended: bool,
     pub is_streaming: bool,
+    #[serde(default)]
+    pub streaming: bool,
     pub can_translate: bool,
 }
 
@@ -258,11 +472,53 @@ pub fn find_canary_dir(base_dir: &Path) -> Option<PathBuf> {
 pub fn find_nemotron_dir(base_dir: &Path) -> Option<PathBuf> {
     if base_dir.join("tokenizer.model").exists()
         && (base_dir.join("encoder.onnx").exists()
-            || base_dir.join("encoder.int8.onnx").exists())
+            || base_dir.join("encoder.int8.onnx").exists()
+            || base_dir.join("encoder-model.int8.onnx").exists())
     {
         return Some(base_dir.to_path_buf());
     }
     None
+}
+
+pub fn find_unified_dir(base_dir: &Path) -> Option<PathBuf> {
+    if base_dir.join("tokenizer.model").exists()
+        && (base_dir.join("encoder.onnx").exists()
+            || base_dir.join("encoder.int8.onnx").exists()
+            || base_dir.join("encoder-model.int8.onnx").exists()
+            || base_dir.join("encoder-model.onnx").exists())
+    {
+        return Some(base_dir.to_path_buf());
+    }
+    None
+}
+
+pub fn find_multitalker_dir(base_dir: &Path) -> Option<PathBuf> {
+    if base_dir.join("tokenizer.model").exists()
+        && (base_dir.join("encoder.int8.onnx").exists()
+            || base_dir.join("encoder.onnx").exists())
+    {
+        return Some(base_dir.to_path_buf());
+    }
+    None
+}
+
+pub fn find_moonshine_dir(base_dir: &Path) -> Option<PathBuf> {
+    if base_dir.join("tokenizer.json").exists()
+        && (base_dir.join("encoder_model_int8.onnx").exists()
+            || base_dir.join("encoder_model.onnx").exists()
+            || base_dir.join("encoder.onnx").exists())
+    {
+        return Some(base_dir.to_path_buf());
+    }
+    None
+}
+
+pub fn is_streaming_model(model_id: &str) -> bool {
+    CATALOG
+        .iter()
+        .find(|item| item.id == model_id)
+        .map(|item| item.is_streaming)
+        .unwrap_or(false)
 }
 
 pub fn is_model_downloaded(item: &CatalogItem, models_dir: &Path) -> bool {
@@ -280,6 +536,18 @@ pub fn is_model_downloaded(item: &CatalogItem, models_dir: &Path) -> bool {
         ModelEngine::Nemotron => {
             let target_dir = models_dir.join(item.filename);
             target_dir.is_dir() && find_nemotron_dir(&target_dir).is_some()
+        }
+        ModelEngine::Unified => {
+            let target_dir = models_dir.join(item.filename);
+            target_dir.is_dir() && find_unified_dir(&target_dir).is_some()
+        }
+        ModelEngine::Multitalker => {
+            let target_dir = models_dir.join(item.filename);
+            target_dir.is_dir() && find_multitalker_dir(&target_dir).is_some()
+        }
+        ModelEngine::Moonshine => {
+            let target_dir = models_dir.join(item.filename);
+            target_dir.is_dir() && find_moonshine_dir(&target_dir).is_some()
         }
         ModelEngine::Whisper => {
             let target_file = models_dir.join(item.filename);
@@ -320,6 +588,7 @@ pub async fn list_models<R: Runtime>(
             engine: item.engine,
             is_recommended: item.is_recommended,
             is_streaming: item.is_streaming,
+            streaming: item.is_streaming,
             can_translate: item.can_translate,
         });
     }
@@ -380,7 +649,7 @@ pub async fn download_model<R: Runtime>(
     let client = reqwest::Client::builder()
         .local_address(std::net::IpAddr::V4(std::net::Ipv4Addr::UNSPECIFIED))
         .http1_only()
-        .user_agent("Pulse-App/1.1.0")
+        .user_agent("Pulse-App/1.2.0")
         .connect_timeout(std::time::Duration::from_secs(15))
         .build()
         .map_err(|e| format!("{:?}", e))?;
@@ -595,7 +864,12 @@ pub async fn delete_model<R: Runtime>(
 
     // 2. Complete storage cleanup: remove directory and/or files + any leftover partial files
     match target_item.engine {
-        ModelEngine::Parakeet | ModelEngine::Canary | ModelEngine::Nemotron => {
+        ModelEngine::Parakeet
+        | ModelEngine::Canary
+        | ModelEngine::Nemotron
+        | ModelEngine::Unified
+        | ModelEngine::Multitalker
+        | ModelEngine::Moonshine => {
             let target_dir = models_dir.join(target_item.filename);
             if target_dir.exists() {
                 tokio::fs::remove_dir_all(&target_dir)
@@ -779,12 +1053,27 @@ mod tests {
 
     #[test]
     fn test_catalog_definitions() {
-        assert_eq!(CATALOG.len(), 6);
-        assert_eq!(CATALOG[0].id, "parakeet-tdt-0.6b-v3");
-        assert_eq!(CATALOG[0].engine, ModelEngine::Parakeet);
-        assert_eq!(CATALOG[1].id, "canary-180m-flash");
-        assert_eq!(CATALOG[1].engine, ModelEngine::Canary);
-        assert_eq!(CATALOG[2].id, "nemotron-streaming-3.5");
-        assert_eq!(CATALOG[2].engine, ModelEngine::Nemotron);
+        assert_eq!(CATALOG.len(), 12);
+        assert_eq!(CATALOG[0].id, "parakeet-unified-en-0.6b");
+        assert_eq!(CATALOG[0].engine, ModelEngine::Unified);
+        assert!(CATALOG[0].is_streaming);
+        assert_eq!(CATALOG[1].id, "nemotron-speech-streaming-en");
+        assert_eq!(CATALOG[1].engine, ModelEngine::Nemotron);
+        assert!(CATALOG[1].is_streaming);
+        assert_eq!(CATALOG[2].id, "multitalker-parakeet-streaming-en");
+        assert_eq!(CATALOG[2].engine, ModelEngine::Multitalker);
+        assert!(CATALOG[2].is_streaming);
+        assert_eq!(CATALOG[3].id, "moonshine-streaming-medium");
+        assert_eq!(CATALOG[3].engine, ModelEngine::Moonshine);
+        assert!(CATALOG[3].is_streaming);
+        assert_eq!(CATALOG[4].id, "moonshine-streaming-small");
+        assert_eq!(CATALOG[4].engine, ModelEngine::Moonshine);
+        assert!(CATALOG[4].is_streaming);
+        assert_eq!(CATALOG[5].id, "moonshine-streaming-tiny");
+        assert_eq!(CATALOG[5].engine, ModelEngine::Moonshine);
+        assert!(CATALOG[5].is_streaming);
+        assert_eq!(CATALOG[6].id, "nemotron-streaming-3.5");
+        assert_eq!(CATALOG[6].engine, ModelEngine::Nemotron);
+        assert!(CATALOG[6].is_streaming);
     }
 }

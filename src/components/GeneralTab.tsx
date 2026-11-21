@@ -64,26 +64,26 @@ export default function GeneralTab() {
   return (
     <div className="space-y-5">
       <div>
-        <h2 className="text-base font-semibold text-slate-900 dark:text-zinc-100">
+        <h2 className="text-base font-semibold text-foreground">
           General Preferences
         </h2>
-        <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">
+        <p className="text-xs text-muted-foreground mt-0.5">
           Appearance, startup behavior, and application details.
         </p>
       </div>
 
       {/* Theme Switcher */}
-      <div className="bg-white dark:bg-[#1a1a1a] rounded-2xl border border-slate-200/90 dark:border-zinc-800/90 p-4.5 space-y-3 shadow-xs">
+      <div className="bg-card rounded-2xl border border-border p-4.5 space-y-3 shadow-xs">
         <div>
-          <h3 className="text-sm font-medium text-slate-900 dark:text-zinc-100">
+          <h3 className="text-sm font-medium text-card-foreground">
             Appearance
           </h3>
-          <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">
+          <p className="text-xs text-muted-foreground mt-0.5">
             Select your preferred visual style or sync with Windows.
           </p>
         </div>
 
-        <div className="grid grid-cols-3 gap-2 bg-slate-100 dark:bg-zinc-900/90 p-1 rounded-xl border border-slate-200/60 dark:border-zinc-800">
+        <div className="grid grid-cols-3 gap-2 bg-muted p-1 rounded-xl border border-border">
           {themeOptions.map((item) => (
             <button
               key={item.id}
@@ -91,11 +91,11 @@ export default function GeneralTab() {
               onClick={() => handleThemeChange(item.id)}
               className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-medium transition-all cursor-pointer shrink-0 whitespace-nowrap ${
                 theme === item.id
-                  ? "bg-white dark:bg-zinc-800 text-slate-900 dark:text-zinc-100 border border-slate-200/50 dark:border-indigo-500/40 shadow-xs font-semibold"
-                  : "text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-200"
+                  ? "bg-card text-foreground border border-border shadow-xs font-semibold"
+                  : "text-muted-foreground hover:text-foreground hover:bg-card/40"
               }`}
             >
-              <span className={theme === item.id ? "text-indigo-600 dark:text-indigo-400" : "text-slate-500 dark:text-zinc-400"}>
+              <span className={theme === item.id ? "text-foreground" : "text-muted-foreground"}>
                 {item.icon}
               </span>
               <span className="whitespace-nowrap">{item.label}</span>
@@ -105,24 +105,24 @@ export default function GeneralTab() {
       </div>
 
       {/* Overlay Text Style */}
-      <div className="bg-white dark:bg-[#1a1a1a] rounded-2xl border border-slate-200/90 dark:border-zinc-800/90 p-4.5 space-y-3 shadow-xs">
+      <div className="bg-card rounded-2xl border border-border p-4.5 space-y-3 shadow-xs">
         <div>
-          <h3 className="text-sm font-medium text-slate-900 dark:text-zinc-100">
+          <h3 className="text-sm font-medium text-card-foreground">
             Overlay Text Style
           </h3>
-          <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">
+          <p className="text-xs text-muted-foreground mt-0.5">
             Choose whether dictated preview text appears normal upright or italicized.
           </p>
         </div>
 
-        <div className="grid grid-cols-2 gap-2 bg-slate-100 dark:bg-zinc-900/90 p-1 rounded-xl border border-slate-200/60 dark:border-zinc-800">
+        <div className="grid grid-cols-2 gap-2 bg-muted p-1 rounded-xl border border-border">
           <button
             type="button"
             onClick={() => handleTextStyleChange("normal")}
             className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-medium transition-all cursor-pointer shrink-0 whitespace-nowrap ${
               textStyle === "normal"
-                ? "bg-white dark:bg-zinc-800 text-slate-900 dark:text-zinc-100 border border-slate-200/50 dark:border-indigo-500/40 shadow-xs font-semibold"
-                : "text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-200"
+                ? "bg-card text-foreground border border-border shadow-xs font-semibold"
+                : "text-muted-foreground hover:text-foreground hover:bg-card/40"
             }`}
           >
             <span className="not-italic font-normal">Normal</span>
@@ -132,8 +132,8 @@ export default function GeneralTab() {
             onClick={() => handleTextStyleChange("italic")}
             className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-medium transition-all cursor-pointer shrink-0 whitespace-nowrap ${
               textStyle === "italic"
-                ? "bg-white dark:bg-zinc-800 text-slate-900 dark:text-zinc-100 border border-slate-200/50 dark:border-indigo-500/40 shadow-xs font-semibold"
-                : "text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-200"
+                ? "bg-card text-foreground border border-border shadow-xs font-semibold"
+                : "text-muted-foreground hover:text-foreground hover:bg-card/40"
             }`}
           >
             <span className="italic font-normal">Italic</span>
@@ -142,12 +142,12 @@ export default function GeneralTab() {
       </div>
 
       {/* Start at Login */}
-      <div className="bg-white dark:bg-[#1a1a1a] rounded-2xl border border-slate-200/90 dark:border-zinc-800/90 p-4.5 shadow-xs flex items-center justify-between">
+      <div className="bg-card rounded-2xl border border-border p-4.5 shadow-xs flex items-center justify-between">
         <div>
-          <h3 className="text-sm font-medium text-slate-900 dark:text-zinc-100">
+          <h3 className="text-sm font-medium text-card-foreground">
             Start at Login
           </h3>
-          <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">
+          <p className="text-xs text-muted-foreground mt-0.5">
             Automatically launch Pulse silently in the system tray when Windows boots.
           </p>
         </div>
@@ -159,11 +159,11 @@ export default function GeneralTab() {
           disabled={autostartLoading}
           onClick={handleToggleAutostart}
           className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden ${
-            autostart ? "bg-indigo-600" : "bg-slate-300 dark:bg-zinc-700"
+            autostart ? "bg-foreground" : "bg-muted-foreground/30"
           }`}
         >
           <span
-            className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
+            className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-background shadow-sm ring-0 transition duration-200 ease-in-out ${
               autostart ? "translate-x-5" : "translate-x-0"
             }`}
           />
@@ -171,13 +171,13 @@ export default function GeneralTab() {
       </div>
 
       {/* About Box */}
-      <div className="bg-white dark:bg-[#1a1a1a] rounded-2xl border border-slate-200/90 dark:border-zinc-800/90 p-4.5 space-y-2.5 shadow-xs text-xs text-slate-500 dark:text-zinc-400">
-        <div className="flex items-center justify-between text-slate-700 dark:text-zinc-300 font-medium">
+      <div className="bg-card rounded-2xl border border-border p-4.5 space-y-2.5 shadow-xs text-xs text-muted-foreground">
+        <div className="flex items-center justify-between text-card-foreground font-medium">
           <div className="flex items-center gap-2">
             <img src="/pulse-logo.png" alt="Pulse" className="w-4 h-4 object-contain shrink-0" />
             <span>Pulse for Windows</span>
           </div>
-          <span className="font-mono text-slate-400 dark:text-zinc-500">v1.1.0</span>
+          <span className="font-mono text-muted-foreground">v1.2.0</span>
         </div>
         <p className="leading-relaxed">
           100% on-device speech-to-text dictation. Audio is captured locally and

@@ -110,15 +110,15 @@ export default function AdvancedPanel() {
       {/* Header */}
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h2 className="text-base font-semibold text-slate-900 dark:text-zinc-100">
+          <h2 className="text-base font-semibold text-foreground">
             Advanced Settings
           </h2>
-          <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">
+          <p className="text-xs text-muted-foreground mt-0.5">
             Fine-tune application lifecycle, clipboard paste methods, transcription filtering, and hardware execution.
           </p>
         </div>
         {savedFeedback && (
-          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 px-2 py-0.5 rounded-md border border-emerald-200 dark:border-emerald-800/60 animate-fade-in">
+          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-foreground bg-muted px-2 py-0.5 rounded-md border border-border animate-fade-in">
             <IconCheck size={12} stroke={2.5} />
             <span>Saved</span>
           </span>
@@ -126,23 +126,23 @@ export default function AdvancedPanel() {
       </div>
 
       {errorMessage && (
-        <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/40 text-xs text-rose-700 dark:text-rose-300 flex items-center gap-2">
+        <div className="p-3 rounded-xl bg-muted border border-border text-xs text-destructive flex items-center gap-2 font-medium">
           <IconAlertCircle size={15} className="shrink-0" />
           <span>{errorMessage}</span>
         </div>
       )}
 
       {/* Card 1: App Behavior */}
-      <div className="bg-white dark:bg-[#1a1a1a] rounded-2xl border border-slate-200/90 dark:border-zinc-800/90 p-4.5 space-y-4 shadow-xs">
-        <div className="flex items-center gap-2 border-b border-slate-100 dark:border-zinc-800/80 pb-3">
-          <div className="p-1 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400">
+      <div className="bg-card rounded-2xl border border-border p-4.5 space-y-4 shadow-xs">
+        <div className="flex items-center gap-2 border-b border-border pb-3">
+          <div className="p-1 rounded-lg bg-muted text-foreground">
             <IconAppWindow size={16} stroke={2} />
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-slate-900 dark:text-zinc-100">
+            <h3 className="text-sm font-semibold text-card-foreground">
               App Behavior
             </h3>
-            <p className="text-[11px] text-slate-500 dark:text-zinc-400">
+            <p className="text-[11px] text-muted-foreground font-normal">
               Window visibility, overlay pill layout, and memory management.
             </p>
           </div>
@@ -152,10 +152,10 @@ export default function AdvancedPanel() {
           {/* Start Hidden */}
           <div className="flex items-center justify-between gap-4">
             <div>
-              <span className="text-xs font-medium text-slate-800 dark:text-zinc-200 block">
+              <span className="text-xs font-medium text-card-foreground block">
                 Start Hidden in System Tray
               </span>
-              <span className="text-[11px] text-slate-400 dark:text-zinc-500 block">
+              <span className="text-[11px] text-muted-foreground block font-normal">
                 Launch quietly in background without opening the Settings window on start.
               </span>
             </div>
@@ -166,33 +166,33 @@ export default function AdvancedPanel() {
               disabled={saving}
               onClick={() => updateConfig({ start_hidden: !config.start_hidden })}
               className={`relative inline-flex h-5 w-10 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden ${
-                config.start_hidden ? "bg-indigo-600" : "bg-slate-300 dark:bg-zinc-700"
+                config.start_hidden ? "bg-foreground" : "bg-muted-foreground/30"
               }`}
             >
               <span
-                className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
+                className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-background shadow-sm ring-0 transition duration-200 ease-in-out ${
                   config.start_hidden ? "translate-x-5" : "translate-x-0"
                 }`}
               />
             </button>
           </div>
 
-          <div className="border-t border-slate-100 dark:border-zinc-800/60" />
+          <div className="border-t border-border" />
 
           {/* Overlay Mode */}
           <div className="flex items-center justify-between gap-4">
             <div>
-              <span className="text-xs font-medium text-slate-800 dark:text-zinc-200 block">
+              <span className="text-xs font-medium text-card-foreground block">
                 Floating Overlay Mode
               </span>
-              <span className="text-[11px] text-slate-400 dark:text-zinc-500 block">
+              <span className="text-[11px] text-muted-foreground block font-normal">
                 Control the real-time visual feedback pill displayed while speaking.
               </span>
             </div>
             <select
               value={config.overlay_mode}
               onChange={(e) => updateConfig({ overlay_mode: e.target.value as any })}
-              className="text-xs bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-lg px-2.5 py-1.5 text-slate-800 dark:text-zinc-200 font-medium focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer"
+              className="text-xs bg-muted border border-border rounded-lg px-2.5 py-1.5 text-foreground font-medium focus:outline-none focus:ring-1 focus:ring-ring cursor-pointer"
             >
               <option value="live">Live (Waveform & Streamed Text)</option>
               <option value="minimal">Minimal (Waveform Only)</option>
@@ -200,44 +200,44 @@ export default function AdvancedPanel() {
             </select>
           </div>
 
-          <div className="border-t border-slate-100 dark:border-zinc-800/60" />
+          <div className="border-t border-border" />
 
           {/* Overlay Position */}
           <div className="flex items-center justify-between gap-4">
             <div>
-              <span className="text-xs font-medium text-slate-800 dark:text-zinc-200 block">
+              <span className="text-xs font-medium text-card-foreground block">
                 Overlay Position
               </span>
-              <span className="text-[11px] text-slate-400 dark:text-zinc-500 block">
+              <span className="text-[11px] text-muted-foreground block font-normal">
                 Placement of the floating dictation pill on your primary monitor.
               </span>
             </div>
             <select
               value={config.overlay_position}
               onChange={(e) => updateConfig({ overlay_position: e.target.value as any })}
-              className="text-xs bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-lg px-2.5 py-1.5 text-slate-800 dark:text-zinc-200 font-medium focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer"
+              className="text-xs bg-muted border border-border rounded-lg px-2.5 py-1.5 text-foreground font-medium focus:outline-none focus:ring-1 focus:ring-ring cursor-pointer"
             >
               <option value="bottom">Bottom Center</option>
               <option value="top">Top Center</option>
             </select>
           </div>
 
-          <div className="border-t border-slate-100 dark:border-zinc-800/60" />
+          <div className="border-t border-border" />
 
           {/* Unload Model Minutes */}
           <div className="flex items-center justify-between gap-4">
             <div>
-              <span className="text-xs font-medium text-slate-800 dark:text-zinc-200 block">
+              <span className="text-xs font-medium text-card-foreground block">
                 Auto-Unload Model from Memory
               </span>
-              <span className="text-[11px] text-slate-400 dark:text-zinc-500 block">
+              <span className="text-[11px] text-muted-foreground block font-normal">
                 Free RAM and VRAM when idle; automatically reloads on the next recording.
               </span>
             </div>
             <select
               value={config.unload_model_minutes}
               onChange={(e) => updateConfig({ unload_model_minutes: Number(e.target.value) })}
-              className="text-xs bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-lg px-2.5 py-1.5 text-slate-800 dark:text-zinc-200 font-medium focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer"
+              className="text-xs bg-muted border border-border rounded-lg px-2.5 py-1.5 text-foreground font-medium focus:outline-none focus:ring-1 focus:ring-ring cursor-pointer"
             >
               <option value={0}>Never (Keep Loaded)</option>
               <option value={2}>After 2 minutes</option>
@@ -250,16 +250,16 @@ export default function AdvancedPanel() {
       </div>
 
       {/* Card 2: Output & Injection */}
-      <div className="bg-white dark:bg-[#1a1a1a] rounded-2xl border border-slate-200/90 dark:border-zinc-800/90 p-4.5 space-y-4 shadow-xs">
-        <div className="flex items-center gap-2 border-b border-slate-100 dark:border-zinc-800/80 pb-3">
-          <div className="p-1 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400">
+      <div className="bg-card rounded-2xl border border-border p-4.5 space-y-4 shadow-xs">
+        <div className="flex items-center gap-2 border-b border-border pb-3">
+          <div className="p-1 rounded-lg bg-muted text-foreground">
             <IconTerminal2 size={16} stroke={2} />
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-slate-900 dark:text-zinc-100">
+            <h3 className="text-sm font-semibold text-card-foreground">
               Output & Text Injection
             </h3>
-            <p className="text-[11px] text-slate-500 dark:text-zinc-400">
+            <p className="text-[11px] text-muted-foreground font-normal">
               How transcription results are pasted into your focused application.
             </p>
           </div>
@@ -269,17 +269,17 @@ export default function AdvancedPanel() {
           {/* Paste Method */}
           <div className="flex items-center justify-between gap-4">
             <div>
-              <span className="text-xs font-medium text-slate-800 dark:text-zinc-200 block">
+              <span className="text-xs font-medium text-card-foreground block">
                 Paste Method
               </span>
-              <span className="text-[11px] text-slate-400 dark:text-zinc-500 block">
+              <span className="text-[11px] text-muted-foreground block font-normal">
                 Keyboard simulation mechanism used to inject transcribed text.
               </span>
             </div>
             <select
               value={config.paste_method}
               onChange={(e) => updateConfig({ paste_method: e.target.value as any })}
-              className="text-xs bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-lg px-2.5 py-1.5 text-slate-800 dark:text-zinc-200 font-medium focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer"
+              className="text-xs bg-muted border border-border rounded-lg px-2.5 py-1.5 text-foreground font-medium focus:outline-none focus:ring-1 focus:ring-ring cursor-pointer"
             >
               <option value="ctrl_v">Ctrl + V (Universal Clipboard)</option>
               <option value="ctrl_shift_v">Ctrl + Shift + V (Plain Text / Terminal)</option>
@@ -287,44 +287,44 @@ export default function AdvancedPanel() {
             </select>
           </div>
 
-          <div className="border-t border-slate-100 dark:border-zinc-800/60" />
+          <div className="border-t border-border" />
 
           {/* Clipboard Handling */}
           <div className="flex items-center justify-between gap-4">
             <div>
-              <span className="text-xs font-medium text-slate-800 dark:text-zinc-200 block">
+              <span className="text-xs font-medium text-card-foreground block">
                 Clipboard Restoration
               </span>
-              <span className="text-[11px] text-slate-400 dark:text-zinc-500 block">
+              <span className="text-[11px] text-muted-foreground block font-normal">
                 Preserve your previous clipboard contents after pasting dictations.
               </span>
             </div>
             <select
               value={config.clipboard_handling}
               onChange={(e) => updateConfig({ clipboard_handling: e.target.value as any })}
-              className="text-xs bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-lg px-2.5 py-1.5 text-slate-800 dark:text-zinc-200 font-medium focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer"
+              className="text-xs bg-muted border border-border rounded-lg px-2.5 py-1.5 text-foreground font-medium focus:outline-none focus:ring-1 focus:ring-ring cursor-pointer"
             >
               <option value="restore">Restore Previous Clipboard</option>
               <option value="keep">Keep Dictated Text in Clipboard</option>
             </select>
           </div>
 
-          <div className="border-t border-slate-100 dark:border-zinc-800/60" />
+          <div className="border-t border-border" />
 
           {/* Auto Submit */}
           <div className="flex items-center justify-between gap-4">
             <div>
-              <span className="text-xs font-medium text-slate-800 dark:text-zinc-200 block">
+              <span className="text-xs font-medium text-card-foreground block">
                 Auto-Submit Key
               </span>
-              <span className="text-[11px] text-slate-400 dark:text-zinc-500 block">
+              <span className="text-[11px] text-muted-foreground block font-normal">
                 Automatically press Enter or Ctrl+Enter right after pasting (great for AI chats & search).
               </span>
             </div>
             <select
               value={config.auto_submit}
               onChange={(e) => updateConfig({ auto_submit: e.target.value as any })}
-              className="text-xs bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-lg px-2.5 py-1.5 text-slate-800 dark:text-zinc-200 font-medium focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer"
+              className="text-xs bg-muted border border-border rounded-lg px-2.5 py-1.5 text-foreground font-medium focus:outline-none focus:ring-1 focus:ring-ring cursor-pointer"
             >
               <option value="off">Off (Paste Only)</option>
               <option value="enter">Press Enter</option>
@@ -332,15 +332,15 @@ export default function AdvancedPanel() {
             </select>
           </div>
 
-          <div className="border-t border-slate-100 dark:border-zinc-800/60" />
+          <div className="border-t border-border" />
 
           {/* Append Trailing Space */}
           <div className="flex items-center justify-between gap-4">
             <div>
-              <span className="text-xs font-medium text-slate-800 dark:text-zinc-200 block">
+              <span className="text-xs font-medium text-card-foreground block">
                 Append Trailing Space
               </span>
-              <span className="text-[11px] text-slate-400 dark:text-zinc-500 block">
+              <span className="text-[11px] text-muted-foreground block font-normal">
                 Adds a trailing space after text so consecutive voice dictations flow naturally.
               </span>
             </div>
@@ -351,11 +351,11 @@ export default function AdvancedPanel() {
               disabled={saving}
               onClick={() => updateConfig({ append_trailing_space: !config.append_trailing_space })}
               className={`relative inline-flex h-5 w-10 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden ${
-                config.append_trailing_space ? "bg-indigo-600" : "bg-slate-300 dark:bg-zinc-700"
+                config.append_trailing_space ? "bg-foreground" : "bg-muted-foreground/30"
               }`}
             >
               <span
-                className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
+                className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-background shadow-sm ring-0 transition duration-200 ease-in-out ${
                   config.append_trailing_space ? "translate-x-5" : "translate-x-0"
                 }`}
               />
@@ -365,16 +365,16 @@ export default function AdvancedPanel() {
       </div>
 
       {/* Card 3: Transcription Cleanup */}
-      <div className="bg-white dark:bg-[#1a1a1a] rounded-2xl border border-slate-200/90 dark:border-zinc-800/90 p-4.5 space-y-4 shadow-xs">
-        <div className="flex items-center gap-2 border-b border-slate-100 dark:border-zinc-800/80 pb-3">
-          <div className="p-1 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400">
+      <div className="bg-card rounded-2xl border border-border p-4.5 space-y-4 shadow-xs">
+        <div className="flex items-center gap-2 border-b border-border pb-3">
+          <div className="p-1 rounded-lg bg-muted text-foreground">
             <IconFilter size={16} stroke={2} />
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-slate-900 dark:text-zinc-100">
+            <h3 className="text-sm font-semibold text-card-foreground">
               Transcription Cleanup
             </h3>
-            <p className="text-[11px] text-slate-500 dark:text-zinc-400">
+            <p className="text-[11px] text-muted-foreground font-normal">
               Silence trimming, filler word removal, and domain-specific custom vocabulary dictionary.
             </p>
           </div>
@@ -384,10 +384,10 @@ export default function AdvancedPanel() {
           {/* Voice Activity Detection */}
           <div className="flex items-center justify-between gap-4">
             <div>
-              <span className="text-xs font-medium text-slate-800 dark:text-zinc-200 block">
+              <span className="text-xs font-medium text-card-foreground block">
                 Voice Activity Detection (VAD)
               </span>
-              <span className="text-[11px] text-slate-400 dark:text-zinc-500 block">
+              <span className="text-[11px] text-muted-foreground block font-normal">
                 Trims leading & trailing silence and skips empty audio to prevent model hallucinations.
               </span>
             </div>
@@ -398,26 +398,26 @@ export default function AdvancedPanel() {
               disabled={saving}
               onClick={() => updateConfig({ vad_enabled: !config.vad_enabled })}
               className={`relative inline-flex h-5 w-10 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden ${
-                config.vad_enabled ? "bg-indigo-600" : "bg-slate-300 dark:bg-zinc-700"
+                config.vad_enabled ? "bg-foreground" : "bg-muted-foreground/30"
               }`}
             >
               <span
-                className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
+                className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-background shadow-sm ring-0 transition duration-200 ease-in-out ${
                   config.vad_enabled ? "translate-x-5" : "translate-x-0"
                 }`}
               />
             </button>
           </div>
 
-          <div className="border-t border-slate-100 dark:border-zinc-800/60" />
+          <div className="border-t border-border" />
 
           {/* Remove Filler Words */}
           <div className="flex items-center justify-between gap-4">
             <div>
-              <span className="text-xs font-medium text-slate-800 dark:text-zinc-200 block">
+              <span className="text-xs font-medium text-card-foreground block">
                 Remove Filler Words
               </span>
-              <span className="text-[11px] text-slate-400 dark:text-zinc-500 block">
+              <span className="text-[11px] text-muted-foreground block font-normal">
                 Automatically strips vocal pauses (&quot;um&quot;, &quot;uh&quot;, &quot;uhh&quot;, &quot;umm&quot;, &quot;er&quot;, &quot;ah&quot;) and collapses double spaces.
               </span>
             </div>
@@ -428,26 +428,26 @@ export default function AdvancedPanel() {
               disabled={saving}
               onClick={() => updateConfig({ remove_filler_words: !config.remove_filler_words })}
               className={`relative inline-flex h-5 w-10 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden ${
-                config.remove_filler_words ? "bg-indigo-600" : "bg-slate-300 dark:bg-zinc-700"
+                config.remove_filler_words ? "bg-foreground" : "bg-muted-foreground/30"
               }`}
             >
               <span
-                className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
+                className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-background shadow-sm ring-0 transition duration-200 ease-in-out ${
                   config.remove_filler_words ? "translate-x-5" : "translate-x-0"
                 }`}
               />
             </button>
           </div>
 
-          <div className="border-t border-slate-100 dark:border-zinc-800/60" />
+          <div className="border-t border-border" />
 
           {/* Custom Vocabulary Dictionary */}
           <div className="space-y-2">
             <div>
-              <span className="text-xs font-medium text-slate-800 dark:text-zinc-200 block">
+              <span className="text-xs font-medium text-card-foreground block">
                 Custom Vocabulary &amp; Casing Dictionary
               </span>
-              <span className="text-[11px] text-slate-400 dark:text-zinc-500 block">
+              <span className="text-[11px] text-muted-foreground block font-normal">
                 Enforces exact casing/spelling normalization (e.g. &quot;Tauri&quot;, &quot;Next.js&quot;, &quot;Parakeet&quot;) and injects vocabulary hints for Whisper models.
               </span>
             </div>
@@ -464,7 +464,7 @@ export default function AdvancedPanel() {
                   }
                 }}
                 placeholder="Type a word or phrase (e.g. Next.js)..."
-                className="flex-1 text-xs bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-lg px-3 py-1.5 text-slate-800 dark:text-zinc-200 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                className="flex-1 text-xs bg-muted border border-border rounded-lg px-3 py-1.5 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring font-normal"
               />
               <PrimeButton
                 onClick={handleAddCustomWord}
@@ -481,13 +481,13 @@ export default function AdvancedPanel() {
                 {config.custom_words.map((word, idx) => (
                   <span
                     key={`${word}-${idx}`}
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 border border-slate-200 dark:border-zinc-700"
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-muted text-card-foreground border border-border"
                   >
                     <span>{word}</span>
                     <button
                       type="button"
                       onClick={() => handleRemoveCustomWord(idx)}
-                      className="text-slate-400 hover:text-rose-500 dark:text-zinc-500 dark:hover:text-rose-400 cursor-pointer"
+                      className="text-muted-foreground hover:text-destructive cursor-pointer"
                       title="Remove word"
                     >
                       <IconX size={12} stroke={2.5} />
@@ -496,7 +496,7 @@ export default function AdvancedPanel() {
                 ))}
               </div>
             ) : (
-              <p className="text-[11px] text-slate-400 dark:text-zinc-500 italic pt-0.5">
+              <p className="text-[11px] text-muted-foreground italic pt-0.5 font-normal">
                 No custom words added yet. Add domain names, library names, or acronyms above.
               </p>
             )}
@@ -505,16 +505,16 @@ export default function AdvancedPanel() {
       </div>
 
       {/* Card 4: Performance & Hardware */}
-      <div className="bg-white dark:bg-[#1a1a1a] rounded-2xl border border-slate-200/90 dark:border-zinc-800/90 p-4.5 space-y-4 shadow-xs">
-        <div className="flex items-center gap-2 border-b border-slate-100 dark:border-zinc-800/80 pb-3">
-          <div className="p-1 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400">
+      <div className="bg-card rounded-2xl border border-border p-4.5 space-y-4 shadow-xs">
+        <div className="flex items-center gap-2 border-b border-border pb-3">
+          <div className="p-1 rounded-lg bg-muted text-foreground">
             <IconBolt size={16} stroke={2} />
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-slate-900 dark:text-zinc-100">
+            <h3 className="text-sm font-semibold text-card-foreground">
               Performance &amp; Hardware
             </h3>
-            <p className="text-[11px] text-slate-500 dark:text-zinc-400">
+            <p className="text-[11px] text-muted-foreground font-normal">
               Execution provider acceleration and microphone standby optimization.
             </p>
           </div>
@@ -524,17 +524,17 @@ export default function AdvancedPanel() {
           {/* Acceleration */}
           <div className="flex items-center justify-between gap-4">
             <div>
-              <span className="text-xs font-medium text-slate-800 dark:text-zinc-200 block">
+              <span className="text-xs font-medium text-card-foreground block">
                 Hardware Acceleration
               </span>
-              <span className="text-[11px] text-slate-400 dark:text-zinc-500 block">
+              <span className="text-[11px] text-muted-foreground block font-normal">
                 Use Windows ONNX DirectML provider with transparent CPU fallback.
               </span>
             </div>
             <select
               value={config.acceleration}
               onChange={(e) => updateConfig({ acceleration: e.target.value as any })}
-              className="text-xs bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-lg px-2.5 py-1.5 text-slate-800 dark:text-zinc-200 font-medium focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer"
+              className="text-xs bg-muted border border-border rounded-lg px-2.5 py-1.5 text-foreground font-medium focus:outline-none focus:ring-1 focus:ring-ring cursor-pointer"
             >
               <option value="auto">Auto (GPU DirectML with CPU Fallback)</option>
               <option value="gpu">GPU DirectML Preferred</option>
@@ -542,15 +542,15 @@ export default function AdvancedPanel() {
             </select>
           </div>
 
-          <div className="border-t border-slate-100 dark:border-zinc-800/60" />
+          <div className="border-t border-border" />
 
           {/* Keep Mic Open */}
           <div className="flex items-center justify-between gap-4">
             <div>
-              <span className="text-xs font-medium text-slate-800 dark:text-zinc-200 block">
+              <span className="text-xs font-medium text-card-foreground block">
                 Keep Microphone Stream Open
               </span>
-              <span className="text-[11px] text-slate-400 dark:text-zinc-500 block">
+              <span className="text-[11px] text-muted-foreground block font-normal">
                 Keeps the audio capture stream running in the background to eliminate microphone warm-up latency.
               </span>
             </div>
@@ -561,11 +561,11 @@ export default function AdvancedPanel() {
               disabled={saving}
               onClick={() => updateConfig({ keep_mic_open: !config.keep_mic_open })}
               className={`relative inline-flex h-5 w-10 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden ${
-                config.keep_mic_open ? "bg-indigo-600" : "bg-slate-300 dark:bg-zinc-700"
+                config.keep_mic_open ? "bg-foreground" : "bg-muted-foreground/30"
               }`}
             >
               <span
-                className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
+                className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-background shadow-sm ring-0 transition duration-200 ease-in-out ${
                   config.keep_mic_open ? "translate-x-5" : "translate-x-0"
                 }`}
               />

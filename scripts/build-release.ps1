@@ -1,5 +1,5 @@
 # ==============================================================================
-# Pulse v1.1.0 Local Signed Release Builder
+# Pulse v1.2.0 Local Signed Release Builder
 # ==============================================================================
 # Usage:
 #   powershell -ExecutionPolicy Bypass -File scripts\build-release.ps1
@@ -131,7 +131,8 @@ try {
 
     $JsonContent = $LatestManifest | ConvertTo-Json -Depth 5
     $LatestJsonPath = Join-Path $TargetArtifactDir "latest.json"
-    [System.IO.File]::WriteAllText($LatestJsonPath, $JsonContent, [System.Text.Encoding]::UTF8)
+    $Utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+    [System.IO.File]::WriteAllText($LatestJsonPath, $JsonContent, $Utf8NoBom)
 
     Write-Host "`n===================================================" -ForegroundColor Green
     Write-Host "   Release v$Version Build & Artifact Packaging Complete!" -ForegroundColor Green

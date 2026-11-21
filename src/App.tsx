@@ -56,9 +56,9 @@ export default function App() {
   };
 
   return (
-    <div className="w-screen h-screen flex bg-slate-50 dark:bg-[#141414] text-slate-800 dark:text-zinc-100 select-none overflow-hidden font-sans">
+    <div className="w-screen h-screen flex bg-background text-foreground select-none overflow-hidden font-sans">
       {/* Left Sidebar (w-52 fixed) */}
-      <aside className="w-52 shrink-0 border-r border-slate-200/90 dark:border-zinc-800/90 flex flex-col justify-between p-3.5 bg-white dark:bg-[#1a1a1a] shadow-2xs">
+      <aside className="w-52 shrink-0 border-r border-sidebar-border flex flex-col justify-between p-3.5 bg-sidebar shadow-2xs">
         <div className="space-y-3">
           {/* App Header (Logo & Name) */}
           <div className="flex items-center space-x-2.5 px-1 py-1">
@@ -69,19 +69,19 @@ export default function App() {
             />
             <div>
               <div className="flex items-center gap-1.5">
-                <span className="text-sm font-bold text-slate-900 dark:text-zinc-100 tracking-tight">
+                <span className="text-sm font-semibold text-sidebar-foreground tracking-tight">
                   Pulse
                 </span>
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
               </div>
-              <p className="text-[10px] text-slate-400 dark:text-zinc-500 font-medium">
+              <p className="text-[10px] text-muted-foreground font-medium">
                 Local Dictation
               </p>
             </div>
           </div>
 
           {/* Dashed Separator Line */}
-          <div className="border-b border-dashed border-slate-200 dark:border-zinc-800 mx-1" />
+          <div className="border-b border-dashed border-border mx-1" />
 
           {/* Navigation Tabs (Vertical List) */}
           <nav className="space-y-1">
@@ -91,13 +91,13 @@ export default function App() {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium transition-all cursor-pointer shrink-0 whitespace-nowrap ${
+                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs transition-all cursor-pointer shrink-0 whitespace-nowrap ${
                     isActive
-                      ? "bg-indigo-50 dark:bg-zinc-800 text-indigo-600 dark:text-indigo-400 border border-indigo-200/60 dark:border-indigo-500/50 shadow-2xs font-semibold"
-                      : "text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-200 hover:bg-slate-100/70 dark:hover:bg-zinc-800/60 border border-transparent"
+                      ? "bg-muted text-foreground border border-border shadow-2xs font-semibold"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/60 border border-transparent font-medium"
                   }`}
                 >
-                  <span className={isActive ? "text-indigo-600 dark:text-indigo-400" : "text-slate-500 dark:text-zinc-400"}>
+                  <span className={isActive ? "text-foreground" : "text-muted-foreground"}>
                     {tab.icon}
                   </span>
                   <span className="whitespace-nowrap">{tab.label}</span>
@@ -108,17 +108,17 @@ export default function App() {
         </div>
 
         {/* Bottom of Sidebar: Theme Toggle */}
-        <div className="pt-3 border-t border-slate-100 dark:border-zinc-800">
+        <div className="pt-3 border-t border-border">
           <button
             onClick={handleCycleTheme}
             title="Click to toggle theme (System → Dark → Light)"
-            className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium bg-slate-100 dark:bg-zinc-800 hover:bg-slate-200/80 dark:hover:bg-zinc-700/80 text-slate-700 dark:text-zinc-200 border border-slate-200/70 dark:border-zinc-700/60 transition-colors cursor-pointer shrink-0 whitespace-nowrap"
+            className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium bg-muted/80 hover:bg-muted text-foreground border border-border transition-colors cursor-pointer shrink-0 whitespace-nowrap"
           >
             <span className="flex items-center gap-1.5 text-[11px] whitespace-nowrap">
-              <span className="text-slate-600 dark:text-zinc-400 shrink-0">{renderThemeIcon()}</span>
+              <span className="text-muted-foreground shrink-0">{renderThemeIcon()}</span>
               <span className="capitalize whitespace-nowrap">{currentTheme}</span>
             </span>
-            <span className="text-[10px] text-slate-400 dark:text-zinc-500 uppercase tracking-wider font-medium shrink-0 whitespace-nowrap">
+            <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium shrink-0 whitespace-nowrap">
               Theme
             </span>
           </button>
@@ -126,8 +126,8 @@ export default function App() {
       </aside>
 
       {/* Right Main Content Panel */}
-      <main className="flex-1 h-full overflow-y-auto p-6 bg-slate-50/60 dark:bg-[#141414]">
-        <div className="max-w-2xl mx-auto">
+      <main className="flex-1 min-w-0 h-full overflow-y-auto p-6 bg-background">
+        <div className="w-full max-w-4xl mx-auto space-y-6">
           {activeTab === "general" && <GeneralTab />}
           {activeTab === "shortcut" && <HotkeyPicker />}
           {activeTab === "postprocess" && <PostProcessPanel />}

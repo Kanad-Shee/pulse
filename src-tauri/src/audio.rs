@@ -76,8 +76,14 @@ impl AudioController {
     }
 }
 
+struct AudioStreamState {
+    _stream: cpal::Stream,
+    stop_drain: Arc<std::sync::atomic::AtomicBool>,
+    drain_handle: Option<std::thread::JoinHandle<()>>,
+}
+
 fn run_audio_worker(rx: Receiver<AudioCommand>) {
-    let mut current_stream: Option<cpal::Stream> = None;
+    let mut current_stream_state: Option<AudioStreamState> = None;
     let mut current_buffer: Option<Arc<Mutex<Vec<f32>>>> = None;
     let mut current_sample_rate: u32 = 16000;
     let mut keep_mic_open = false;
@@ -88,13 +94,18 @@ fn run_audio_worker(rx: Receiver<AudioCommand>) {
             AudioCommand::SetKeepMicOpen(enabled) => {
                 keep_mic_open = enabled;
                 if !enabled && !is_capturing.load(std::sync::atomic::Ordering::Relaxed) {
-                    current_stream = None;
+                    if let Some(mut state) = current_stream_state.take() {
+                        state.stop_drain.store(true, std::sync::atomic::Ordering::SeqCst);
+                        if let Some(h) = state.drain_handle.take() {
+                            let _ = h.join();
+                        }
+                    }
                     current_buffer = None;
                 }
             }
             AudioCommand::Start(reply, app_handle) => {
                 // If stream is already alive from keep_mic_open, just clear buffer & start capturing
-                if keep_mic_open && current_stream.is_some() {
+                if keep_mic_open && current_stream_state.is_some() {
                     if let Some(ref buf_arc) = current_buffer {
                         if let Ok(mut buf) = buf_arc.lock() {
                             buf.clear();
@@ -106,7 +117,12 @@ fn run_audio_worker(rx: Receiver<AudioCommand>) {
                 }
 
                 // Drop any stale stream before building new one
-                current_stream = None;
+                if let Some(mut state) = current_stream_state.take() {
+                    state.stop_drain.store(true, std::sync::atomic::Ordering::SeqCst);
+                    if let Some(h) = state.drain_handle.take() {
+                        let _ = h.join();
+                    }
+                }
                 current_buffer = None;
                 is_capturing.store(false, std::sync::atomic::Ordering::SeqCst);
 
@@ -130,16 +146,81 @@ fn run_audio_worker(rx: Receiver<AudioCommand>) {
                 current_sample_rate = default_config.sample_rate().0;
                 let channels = default_config.channels() as usize;
                 let buffer = Arc::new(Mutex::new(Vec::<f32>::new()));
-                let buf_clone = Arc::clone(&buffer);
-
-                let last_emit = Arc::new(Mutex::new(Instant::now()));
                 let is_capturing_clone = Arc::clone(&is_capturing);
+
+                // Pre-allocated lock-free SPSC ring buffer (holding up to ~5 seconds of audio)
+                let ring_capacity = (current_sample_rate as usize * 5).max(65536);
+                let (mut producer, mut consumer) = rtrb::RingBuffer::<f32>::new(ring_capacity);
+
+                let stop_drain = Arc::new(std::sync::atomic::AtomicBool::new(false));
+                let stop_drain_clone = Arc::clone(&stop_drain);
+                let rec_buf = Arc::clone(&buffer);
+                let is_capturing_drain = Arc::clone(&is_capturing);
+                let app_opt = app_handle.clone();
+
+                // Dedicated consumer thread to drain samples without blocking the CPAL audio callback
+                let drain_handle = std::thread::Builder::new()
+                    .name("pulse-audio-drain".to_string())
+                    .spawn(move || {
+                        let mut last_emit = Instant::now();
+                        let mut frame_sum_sq = 0.0f32;
+                        let mut frame_count = 0usize;
+                        let mut batch = Vec::with_capacity(2048);
+
+                        while !stop_drain_clone.load(std::sync::atomic::Ordering::Relaxed) {
+                            batch.clear();
+                            while let Ok(sample) = consumer.pop() {
+                                if is_capturing_drain.load(std::sync::atomic::Ordering::Relaxed) {
+                                    batch.push(sample);
+                                    frame_sum_sq += sample * sample;
+                                    frame_count += 1;
+                                }
+                                if batch.len() >= 4096 {
+                                    break;
+                                }
+                            }
+
+                            if !batch.is_empty() {
+                                if let Ok(mut g) = rec_buf.lock() {
+                                    g.extend_from_slice(&batch);
+                                }
+                            }
+
+                            let now = Instant::now();
+                            if now.duration_since(last_emit) >= Duration::from_millis(33) {
+                                last_emit = now;
+                                if frame_count > 0 {
+                                    let rms = (frame_sum_sq / frame_count as f32).sqrt();
+                                    let level = (rms * 5.0).clamp(0.0, 1.0);
+                                    if let Some(ref app) = app_opt {
+                                        let _ = app.emit("audio-level", level);
+                                    }
+                                    frame_sum_sq = 0.0;
+                                    frame_count = 0;
+                                }
+                            }
+
+                            std::thread::sleep(Duration::from_millis(4));
+                        }
+
+                        // Final drain upon stop
+                        batch.clear();
+                        while let Ok(sample) = consumer.pop() {
+                            if is_capturing_drain.load(std::sync::atomic::Ordering::Relaxed) {
+                                batch.push(sample);
+                            }
+                        }
+                        if !batch.is_empty() {
+                            if let Ok(mut g) = rec_buf.lock() {
+                                g.extend_from_slice(&batch);
+                            }
+                        }
+                    })
+                    .expect("Failed to spawn audio drain thread");
 
                 let sample_format = default_config.sample_format();
                 let stream_result = match sample_format {
                     cpal::SampleFormat::F32 => {
-                        let app_opt = app_handle.clone();
-                        let last_emit_clone = Arc::clone(&last_emit);
                         let is_capturing_cb = Arc::clone(&is_capturing_clone);
                         device.build_input_stream(
                             &default_config.into(),
@@ -147,37 +228,15 @@ fn run_audio_worker(rx: Receiver<AudioCommand>) {
                                 if !is_capturing_cb.load(std::sync::atomic::Ordering::Relaxed) {
                                     return;
                                 }
-                                if let Ok(mut buf) = buf_clone.lock() {
-                                    let mut frame_sum_sq: f32 = 0.0;
-                                    let mut frame_count: usize = 0;
-                                    if channels == 1 {
-                                        for &s in data {
-                                            frame_sum_sq += s * s;
-                                            frame_count += 1;
-                                        }
-                                        buf.extend_from_slice(data);
-                                    } else {
-                                        for frame in data.chunks_exact(channels) {
-                                            let sum: f32 = frame.iter().sum();
-                                            let mono = sum / channels as f32;
-                                            frame_sum_sq += mono * mono;
-                                            frame_count += 1;
-                                            buf.push(mono);
-                                        }
+                                if channels == 1 {
+                                    for &s in data {
+                                        let _ = producer.push(s);
                                     }
-
-                                    if let Some(ref app) = app_opt {
-                                        if let Ok(mut last) = last_emit_clone.try_lock() {
-                                            let now = Instant::now();
-                                            if now.duration_since(*last) >= Duration::from_millis(33) {
-                                                *last = now;
-                                                if frame_count > 0 {
-                                                    let rms = (frame_sum_sq / frame_count as f32).sqrt();
-                                                    let level = (rms * 5.0).clamp(0.0, 1.0);
-                                                    let _ = app.emit("audio-level", level);
-                                                }
-                                            }
-                                        }
+                                } else {
+                                    for frame in data.chunks_exact(channels) {
+                                        let sum: f32 = frame.iter().sum();
+                                        let mono = sum / channels as f32;
+                                        let _ = producer.push(mono);
                                     }
                                 }
                             },
@@ -186,9 +245,6 @@ fn run_audio_worker(rx: Receiver<AudioCommand>) {
                         )
                     }
                     cpal::SampleFormat::I16 => {
-                        let buf_clone = Arc::clone(&buffer);
-                        let app_opt = app_handle.clone();
-                        let last_emit_clone = Arc::clone(&last_emit);
                         let is_capturing_cb = Arc::clone(&is_capturing_clone);
                         device.build_input_stream(
                             &default_config.into(),
@@ -196,38 +252,16 @@ fn run_audio_worker(rx: Receiver<AudioCommand>) {
                                 if !is_capturing_cb.load(std::sync::atomic::Ordering::Relaxed) {
                                     return;
                                 }
-                                if let Ok(mut buf) = buf_clone.lock() {
-                                    let mut frame_sum_sq: f32 = 0.0;
-                                    let mut frame_count: usize = 0;
-                                    if channels == 1 {
-                                        for &s in data {
-                                            let f = s as f32 / 32768.0;
-                                            frame_sum_sq += f * f;
-                                            frame_count += 1;
-                                            buf.push(f);
-                                        }
-                                    } else {
-                                        for frame in data.chunks_exact(channels) {
-                                            let sum: f32 = frame.iter().map(|&s| s as f32 / 32768.0).sum();
-                                            let mono = sum / channels as f32;
-                                            frame_sum_sq += mono * mono;
-                                            frame_count += 1;
-                                            buf.push(mono);
-                                        }
+                                if channels == 1 {
+                                    for &s in data {
+                                        let f = s as f32 / 32768.0;
+                                        let _ = producer.push(f);
                                     }
-
-                                    if let Some(ref app) = app_opt {
-                                        if let Ok(mut last) = last_emit_clone.try_lock() {
-                                            let now = Instant::now();
-                                            if now.duration_since(*last) >= Duration::from_millis(33) {
-                                                *last = now;
-                                                if frame_count > 0 {
-                                                    let rms = (frame_sum_sq / frame_count as f32).sqrt();
-                                                    let level = (rms * 5.0).clamp(0.0, 1.0);
-                                                    let _ = app.emit("audio-level", level);
-                                                }
-                                            }
-                                        }
+                                } else {
+                                    for frame in data.chunks_exact(channels) {
+                                        let sum: f32 = frame.iter().map(|&s| s as f32 / 32768.0).sum();
+                                        let mono = sum / channels as f32;
+                                        let _ = producer.push(mono);
                                     }
                                 }
                             },
@@ -236,9 +270,6 @@ fn run_audio_worker(rx: Receiver<AudioCommand>) {
                         )
                     }
                     cpal::SampleFormat::U16 => {
-                        let buf_clone = Arc::clone(&buffer);
-                        let app_opt = app_handle.clone();
-                        let last_emit_clone = Arc::clone(&last_emit);
                         let is_capturing_cb = Arc::clone(&is_capturing_clone);
                         device.build_input_stream(
                             &default_config.into(),
@@ -246,41 +277,19 @@ fn run_audio_worker(rx: Receiver<AudioCommand>) {
                                 if !is_capturing_cb.load(std::sync::atomic::Ordering::Relaxed) {
                                     return;
                                 }
-                                if let Ok(mut buf) = buf_clone.lock() {
-                                    let mut frame_sum_sq: f32 = 0.0;
-                                    let mut frame_count: usize = 0;
-                                    if channels == 1 {
-                                        for &s in data {
-                                            let f = (s as f32 - 32768.0) / 32768.0;
-                                            frame_sum_sq += f * f;
-                                            frame_count += 1;
-                                            buf.push(f);
-                                        }
-                                    } else {
-                                        for frame in data.chunks_exact(channels) {
-                                            let sum: f32 = frame
-                                                .iter()
-                                                .map(|&s| (s as f32 - 32768.0) / 32768.0)
-                                                .sum();
-                                            let mono = sum / channels as f32;
-                                            frame_sum_sq += mono * mono;
-                                            frame_count += 1;
-                                            buf.push(mono);
-                                        }
+                                if channels == 1 {
+                                    for &s in data {
+                                        let f = (s as f32 - 32768.0) / 32768.0;
+                                        let _ = producer.push(f);
                                     }
-
-                                    if let Some(ref app) = app_opt {
-                                        if let Ok(mut last) = last_emit_clone.try_lock() {
-                                            let now = Instant::now();
-                                            if now.duration_since(*last) >= Duration::from_millis(33) {
-                                                *last = now;
-                                                if frame_count > 0 {
-                                                    let rms = (frame_sum_sq / frame_count as f32).sqrt();
-                                                    let level = (rms * 5.0).clamp(0.0, 1.0);
-                                                    let _ = app.emit("audio-level", level);
-                                                }
-                                            }
-                                        }
+                                } else {
+                                    for frame in data.chunks_exact(channels) {
+                                        let sum: f32 = frame
+                                            .iter()
+                                            .map(|&s| (s as f32 - 32768.0) / 32768.0)
+                                            .sum();
+                                        let mono = sum / channels as f32;
+                                        let _ = producer.push(mono);
                                     }
                                 }
                             },
@@ -308,7 +317,11 @@ fn run_audio_worker(rx: Receiver<AudioCommand>) {
                 }
 
                 is_capturing.store(true, std::sync::atomic::Ordering::SeqCst);
-                current_stream = Some(stream);
+                current_stream_state = Some(AudioStreamState {
+                    _stream: stream,
+                    stop_drain,
+                    drain_handle: Some(drain_handle),
+                });
                 current_buffer = Some(buffer);
                 let _ = reply.send(Ok(()));
             }
@@ -316,6 +329,8 @@ fn run_audio_worker(rx: Receiver<AudioCommand>) {
                 is_capturing.store(false, std::sync::atomic::Ordering::SeqCst);
 
                 let raw_samples = if keep_mic_open {
+                    // Let drain thread finish queued samples
+                    std::thread::sleep(Duration::from_millis(15));
                     if let Some(ref buf_arc) = current_buffer {
                         let mut g = buf_arc.lock().unwrap_or_else(|e| e.into_inner());
                         let samples = g.clone();
@@ -325,8 +340,13 @@ fn run_audio_worker(rx: Receiver<AudioCommand>) {
                         Vec::new()
                     }
                 } else {
-                    // Stop and drop the stream to release the Windows microphone
-                    current_stream = None;
+                    // Stop drain thread and drop stream to release Windows microphone
+                    if let Some(mut state) = current_stream_state.take() {
+                        state.stop_drain.store(true, std::sync::atomic::Ordering::SeqCst);
+                        if let Some(h) = state.drain_handle.take() {
+                            let _ = h.join();
+                        }
+                    }
 
                     match current_buffer.take() {
                         Some(buf_arc) => match Arc::try_unwrap(buf_arc) {

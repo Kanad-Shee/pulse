@@ -42,7 +42,11 @@ function formatUpdateError(err: unknown): FormattedUpdateError {
   if (
     raw.includes("valid release json") ||
     raw.includes("404") ||
-    raw.includes("not found")
+    raw.includes("not found") ||
+    raw.includes("expected value") ||
+    raw.includes("deserialize") ||
+    raw.includes("syntax error") ||
+    raw.includes("json")
   ) {
     return {
       title: "No Updates Available Yet",
@@ -83,7 +87,7 @@ function formatUpdateError(err: unknown): FormattedUpdateError {
 }
 
 export default function AboutPanel() {
-  const [version, setVersion] = useState<string>("1.1.0");
+  const [version, setVersion] = useState<string>("1.2.0");
   const [updateState, setUpdateState] = useState<UpdateState>("idle");
   const [updateInfo, setUpdateInfo] = useState<Update | null>(null);
   const [downloadProgress, setDownloadProgress] = useState<number>(0);
@@ -172,16 +176,16 @@ export default function AboutPanel() {
   return (
     <div className="space-y-5">
       <div>
-        <h2 className="text-base font-semibold text-slate-900 dark:text-zinc-100">
+        <h2 className="text-base font-semibold text-foreground">
           About Pulse
         </h2>
-        <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">
+        <p className="text-xs text-muted-foreground mt-0.5">
           Application details, open-source repository, and software updates.
         </p>
       </div>
 
       {/* App Info Card */}
-      <div className="bg-white dark:bg-[#1a1a1a] rounded-2xl border border-slate-200/90 dark:border-zinc-800/90 p-5 space-y-4 shadow-xs">
+      <div className="bg-card rounded-2xl border border-border p-5 space-y-4 shadow-xs">
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-3.5">
             <img
@@ -191,14 +195,14 @@ export default function AboutPanel() {
             />
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-base font-bold text-slate-900 dark:text-zinc-100 tracking-tight">
+                <h3 className="text-base font-semibold text-foreground tracking-tight">
                   Pulse
                 </h3>
-                <span className="px-2 py-0.5 rounded-full text-[11px] font-mono font-semibold bg-indigo-50 dark:bg-indigo-950/70 text-indigo-600 dark:text-indigo-400 border border-indigo-200/60 dark:border-indigo-800/60">
+                <span className="px-2 py-0.5 rounded-full text-[11px] font-mono font-medium bg-muted text-foreground border border-border">
                   v{version}
                 </span>
               </div>
-              <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5 font-medium">
+              <p className="text-xs text-muted-foreground mt-0.5 font-medium">
                 Pulse for Windows &middot; 64-bit
               </p>
             </div>
@@ -207,27 +211,27 @@ export default function AboutPanel() {
           <button
             onClick={handleOpenGitHub}
             title="Open Pulse repository on GitHub"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium text-slate-700 dark:text-zinc-300 bg-slate-100 dark:bg-zinc-800 hover:bg-slate-200/80 dark:hover:bg-zinc-700/80 border border-slate-200/80 dark:border-zinc-700/60 transition-colors cursor-pointer shrink-0"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium text-foreground bg-muted hover:bg-muted/80 border border-border transition-colors cursor-pointer shrink-0"
           >
             <IconBrandGithub size={15} stroke={1.8} />
             <span>View on GitHub</span>
           </button>
         </div>
 
-        <p className="text-xs text-slate-600 dark:text-zinc-300 leading-relaxed">
+        <p className="text-xs text-muted-foreground leading-relaxed font-normal">
           100% local, zero-cloud Windows voice-to-text powered by Parakeet,
           Whisper, Canary, Nemotron, and Ollama.
         </p>
       </div>
 
       {/* Software Updates Card */}
-      <div className="bg-white dark:bg-[#1a1a1a] rounded-2xl border border-slate-200/90 dark:border-zinc-800/90 p-5 space-y-4 shadow-xs">
+      <div className="bg-card rounded-2xl border border-border p-5 space-y-4 shadow-xs">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-sm font-medium text-slate-900 dark:text-zinc-100">
+            <h3 className="text-sm font-medium text-foreground">
               Software Updates
             </h3>
-            <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">
+            <p className="text-xs text-muted-foreground mt-0.5">
               Automated in-app updates distributed via GitHub Releases.
             </p>
           </div>
@@ -247,11 +251,11 @@ export default function AboutPanel() {
 
         {/* State: Checking */}
         {updateState === "checking" && (
-          <div className="flex items-center gap-2.5 p-3.5 rounded-xl bg-slate-50 dark:bg-zinc-900/60 border border-slate-200/60 dark:border-zinc-800 text-xs text-slate-600 dark:text-zinc-300">
+          <div className="flex items-center gap-2.5 p-3.5 rounded-xl bg-muted border border-border text-xs text-muted-foreground">
             <IconRefresh
               size={16}
               stroke={2}
-              className="animate-spin text-indigo-600 dark:text-indigo-400 shrink-0"
+              className="animate-spin text-foreground shrink-0"
             />
             <span>Checking for updates from GitHub Releases...</span>
           </div>
@@ -259,9 +263,9 @@ export default function AboutPanel() {
 
         {/* State: Up to date */}
         {updateState === "up-to-date" && (
-          <div className="flex items-center gap-2.5 p-3.5 rounded-xl bg-emerald-50/80 dark:bg-emerald-950/30 border border-emerald-200/80 dark:border-emerald-800/50 text-xs text-emerald-800 dark:text-emerald-300">
-            <span className="w-5 h-5 rounded-full bg-emerald-100 dark:bg-emerald-900/80 flex items-center justify-center shrink-0">
-              <IconCheck size={13} stroke={2.5} className="text-emerald-600 dark:text-emerald-400" />
+          <div className="flex items-center gap-2.5 p-3.5 rounded-xl bg-muted border border-border text-xs text-foreground">
+            <span className="w-5 h-5 rounded-full bg-foreground text-background flex items-center justify-center shrink-0">
+              <IconCheck size={13} stroke={2.5} />
             </span>
             <span className="font-medium">
               You're on the latest version (v{version}).
@@ -271,13 +275,13 @@ export default function AboutPanel() {
 
         {/* State: Update Available */}
         {updateState === "available" && updateInfo && (
-          <div className="space-y-3 p-4 rounded-xl bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-200/80 dark:border-indigo-800/60">
+          <div className="space-y-3 p-4 rounded-xl bg-muted border border-border">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="w-5 h-5 rounded-full bg-indigo-100 dark:bg-indigo-900/80 flex items-center justify-center shrink-0 text-indigo-600 dark:text-indigo-400">
+                <span className="w-5 h-5 rounded-full bg-foreground text-background flex items-center justify-center shrink-0">
                   <IconSparkles size={13} stroke={2.5} />
                 </span>
-                <span className="text-xs font-semibold text-slate-900 dark:text-zinc-100">
+                <span className="text-xs font-semibold text-foreground">
                   Update Available: v{updateInfo.version}
                 </span>
               </div>
@@ -292,7 +296,7 @@ export default function AboutPanel() {
             </div>
 
             {updateInfo.body && (
-              <div className="text-xs text-slate-600 dark:text-zinc-300 bg-white/80 dark:bg-zinc-900/80 p-3 rounded-lg border border-slate-200/60 dark:border-zinc-800 max-h-36 overflow-y-auto whitespace-pre-wrap leading-relaxed">
+              <div className="text-xs text-muted-foreground bg-card p-3 rounded-lg border border-border max-h-36 overflow-y-auto whitespace-pre-wrap leading-relaxed">
                 {updateInfo.body}
               </div>
             )}

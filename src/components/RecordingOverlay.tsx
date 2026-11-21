@@ -264,13 +264,13 @@ export default function RecordingOverlay() {
               >
                 <div
                   ref={textContainerRef}
-                  className={`text-xs font-medium tracking-wide max-h-24 overflow-y-auto scrollbar-hide whitespace-pre-wrap break-words pr-1 flex-1 min-w-0 leading-snug ${
+                  className={`text-xs font-normal max-h-24 overflow-y-auto scrollbar-hide whitespace-pre-wrap break-words pr-1 flex-1 min-w-0 leading-snug ${
                     isDark ? "text-zinc-200" : "text-slate-700"
                   } ${overlayTextStyle === "italic" ? "italic" : "not-italic"}`}
                 >
                   {status === "polishing" ? (
                     <span
-                      className={`animate-pulse font-semibold not-italic ${
+                      className={`animate-pulse font-normal not-italic ${
                         isDark ? "text-indigo-400" : "text-indigo-600"
                       }`}
                     >
@@ -278,13 +278,13 @@ export default function RecordingOverlay() {
                     </span>
                   ) : previewText ? (
                     <span
-                      className={isDark ? "text-zinc-100" : "text-slate-800"}
+                      className={`font-normal ${isDark ? "text-zinc-100" : "text-slate-800"}`}
                     >
                       {previewText}
                     </span>
                   ) : status === "transcribing" ? (
                     <span
-                      className={`animate-pulse font-semibold not-italic ${
+                      className={`animate-pulse font-normal not-italic ${
                         isDark ? "text-indigo-400" : "text-indigo-600"
                       }`}
                     >
@@ -292,7 +292,7 @@ export default function RecordingOverlay() {
                     </span>
                   ) : (
                     <span
-                      className={isDark ? "text-zinc-500" : "text-slate-400"}
+                      className={`font-normal ${isDark ? "text-zinc-500" : "text-slate-400"}`}
                     >
                       Listening...
                     </span>
@@ -347,7 +347,7 @@ export default function RecordingOverlay() {
             {/* Right: Live timer & Cancel button */}
             <div className="flex items-center gap-1.5 shrink-0">
               <span
-                className={`text-[11px] font-mono tabular-nums font-medium ${
+                className={`text-[11px] font-mono tabular-nums font-normal ${
                   isDark ? "text-zinc-400" : "text-slate-400"
                 }`}
               >

@@ -370,7 +370,7 @@ impl Canary {
 
             builder = builder
                 .with_optimization_level(opt_level)?
-                .with_memory_pattern(false)?;
+                .with_memory_pattern(true)?;
 
             if !config.skip_ort_threads {
                 builder = builder

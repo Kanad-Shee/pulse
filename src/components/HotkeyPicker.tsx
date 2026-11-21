@@ -142,21 +142,21 @@ export default function HotkeyPicker() {
   return (
     <div className="space-y-5">
       <div>
-        <h2 className="text-base font-semibold text-slate-900 dark:text-zinc-100">
+        <h2 className="text-base font-semibold text-foreground">
           Push-to-Talk Shortcut
         </h2>
-        <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">
+        <p className="text-xs text-muted-foreground mt-0.5">
           Configure your system-wide dictation key combination and trigger behavior.
         </p>
       </div>
 
-      <div className="bg-white dark:bg-[#1a1a1a] rounded-2xl border border-slate-200/90 dark:border-zinc-800/90 shadow-xs p-4.5 space-y-3.5">
+      <div className="bg-card rounded-2xl border border-border shadow-xs p-4.5 space-y-3.5">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0 flex-1">
-            <h3 className="text-sm font-semibold text-slate-900 dark:text-zinc-100">
+            <h3 className="text-sm font-semibold text-card-foreground">
               Active Hotkey
             </h3>
-            <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">
+            <p className="text-xs text-muted-foreground mt-0.5 font-normal">
               {mode === "hold"
                 ? "Hold to record, release to transcribe & paste"
                 : "Click once to record with live preview, click again to paste"}
@@ -167,7 +167,7 @@ export default function HotkeyPicker() {
             <button
               onClick={handleReset}
               disabled={saving}
-              className="flex items-center gap-1 text-xs text-slate-400 hover:text-slate-600 dark:text-zinc-400 dark:hover:text-zinc-200 transition-colors cursor-pointer shrink-0 whitespace-nowrap"
+              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer shrink-0 whitespace-nowrap font-medium"
             >
               <IconRotate size={12} stroke={1.75} />
               <span className="whitespace-nowrap">Reset</span>
@@ -176,14 +176,14 @@ export default function HotkeyPicker() {
         </div>
 
         {/* Shortcut Key Display & Change Button */}
-        <div className="flex items-center justify-between gap-3 bg-slate-50 dark:bg-zinc-900/90 border border-slate-200/80 dark:border-zinc-800 rounded-xl p-3">
+        <div className="flex items-center justify-between gap-3 bg-muted border border-border rounded-xl p-3">
           <div className="flex items-center gap-1.5 flex-wrap min-w-0 flex-1">
             {keyTokens.map((token, index) => (
               <React.Fragment key={index}>
                 {index > 0 && (
-                  <span className="text-slate-400 dark:text-zinc-500 text-xs font-semibold">+</span>
+                  <span className="text-muted-foreground text-xs font-semibold">+</span>
                 )}
-                <kbd className="px-2.5 py-1 bg-white dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-lg text-xs font-mono font-medium text-slate-700 dark:text-zinc-200 shadow-2xs whitespace-nowrap">
+                <kbd className="px-2.5 py-1 bg-card border border-border rounded-lg text-xs font-mono font-medium text-card-foreground shadow-2xs whitespace-nowrap">
                   {token || "..."}
                 </kbd>
               </React.Fragment>
@@ -199,8 +199,8 @@ export default function HotkeyPicker() {
             disabled={saving}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer shrink-0 whitespace-nowrap ${
               isRecording
-                ? "bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-200 border border-amber-200 dark:border-amber-800 animate-pulse"
-                : "bg-indigo-50 dark:bg-zinc-800 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-zinc-700 border border-indigo-200/60 dark:border-indigo-500/30"
+                ? "bg-foreground text-background animate-pulse font-semibold"
+                : "bg-card hover:bg-card/80 text-card-foreground border border-border shadow-2xs"
             }`}
           >
             <IconKeyboard size={13} stroke={1.75} />
@@ -210,29 +210,29 @@ export default function HotkeyPicker() {
 
         {/* Segmented Mode Selector: Hold vs Toggle */}
         <div className="space-y-1.5 pt-0.5">
-          <div className="text-[11px] font-medium uppercase tracking-wider text-slate-400 dark:text-zinc-500">
+          <div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
             Interaction Mode
           </div>
-          <div className="grid grid-cols-2 gap-2 bg-slate-100/80 dark:bg-zinc-900/80 p-1 rounded-xl border border-slate-200/60 dark:border-zinc-800">
+          <div className="grid grid-cols-2 gap-2 bg-muted p-1 rounded-xl border border-border">
             <button
               type="button"
               onClick={() => handleModeChange("hold")}
               disabled={saving}
               className={`flex flex-col items-start px-3 py-2 rounded-lg text-left transition-all cursor-pointer allow-wrap ${
                 mode === "hold"
-                  ? "bg-white dark:bg-zinc-800 text-slate-900 dark:text-zinc-100 shadow-xs font-medium border border-slate-200/50 dark:border-indigo-500/40"
-                  : "text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-200 hover:bg-white/50 dark:hover:bg-zinc-800/50"
+                  ? "bg-card text-foreground shadow-xs font-medium border border-border"
+                  : "text-muted-foreground hover:text-foreground hover:bg-card/40"
               }`}
             >
               <span className="text-xs font-semibold flex items-center gap-1.5 whitespace-nowrap">
                 <span
                   className={`w-1.5 h-1.5 rounded-full ${
-                    mode === "hold" ? "bg-indigo-600 dark:bg-indigo-400" : "bg-transparent"
+                    mode === "hold" ? "bg-foreground" : "bg-transparent"
                   }`}
                 />
                 Hold (Push-to-Talk)
               </span>
-              <span className="text-[11px] text-slate-500 dark:text-zinc-400 mt-0.5 whitespace-nowrap">
+              <span className="text-[11px] text-muted-foreground mt-0.5 whitespace-nowrap font-normal">
                 Hold to talk, release to paste
               </span>
             </button>
@@ -243,19 +243,19 @@ export default function HotkeyPicker() {
               disabled={saving}
               className={`flex flex-col items-start px-3 py-2 rounded-lg text-left transition-all cursor-pointer allow-wrap ${
                 mode === "toggle"
-                  ? "bg-white dark:bg-zinc-800 text-slate-900 dark:text-zinc-100 shadow-xs font-medium border border-slate-200/50 dark:border-indigo-500/40"
-                  : "text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-200 hover:bg-white/50 dark:hover:bg-zinc-800/50"
+                  ? "bg-card text-foreground shadow-xs font-medium border border-border"
+                  : "text-muted-foreground hover:text-foreground hover:bg-card/40"
               }`}
             >
               <span className="text-xs font-semibold flex items-center gap-1.5 whitespace-nowrap">
                 <span
                   className={`w-1.5 h-1.5 rounded-full ${
-                    mode === "toggle" ? "bg-indigo-600 dark:bg-indigo-400" : "bg-transparent"
+                    mode === "toggle" ? "bg-foreground" : "bg-transparent"
                   }`}
                 />
                 Toggle (Hands-Free)
               </span>
-              <span className="text-[11px] text-slate-500 dark:text-zinc-400 mt-0.5 whitespace-nowrap">
+              <span className="text-[11px] text-muted-foreground mt-0.5 whitespace-nowrap font-normal">
                 Live preview, click again to paste
               </span>
             </button>
@@ -263,7 +263,7 @@ export default function HotkeyPicker() {
         </div>
 
         {error && (
-          <div className="text-xs text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 border border-rose-200/60 dark:border-rose-900/40 rounded-lg p-2">
+          <div className="text-xs text-destructive bg-muted border border-border rounded-lg p-2 font-medium">
             {error}
           </div>
         )}

@@ -121,10 +121,10 @@ export default function HistoryTab() {
       {/* Header with Title & Action Controls */}
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <h2 className="text-base font-semibold text-slate-900 dark:text-zinc-100">
+          <h2 className="text-base font-semibold text-foreground">
             Transcription History
           </h2>
-          <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">
+          <p className="text-xs text-muted-foreground mt-0.5">
             Locally saved dictations. Accessible via tray "Copy Last Conversation".
           </p>
         </div>
@@ -132,7 +132,7 @@ export default function HistoryTab() {
         {history.length > 0 && (
           <button
             onClick={handleClearAll}
-            className="flex items-center gap-1 text-xs font-medium text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 transition-colors cursor-pointer shrink-0 whitespace-nowrap"
+            className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-destructive transition-colors cursor-pointer shrink-0 whitespace-nowrap"
           >
             <IconTrash size={13} stroke={1.75} />
             <span className="whitespace-nowrap">Clear All</span>
@@ -141,12 +141,12 @@ export default function HistoryTab() {
       </div>
 
       {/* History Limit Stepper Card */}
-      <div className="bg-white dark:bg-[#1a1a1a] rounded-2xl border border-slate-200/90 dark:border-zinc-800/90 p-4 shadow-xs flex items-center justify-between gap-4">
+      <div className="bg-card rounded-2xl border border-border p-4 shadow-xs flex items-center justify-between gap-4">
         <div>
-          <h3 className="text-sm font-medium text-slate-900 dark:text-zinc-100">
+          <h3 className="text-sm font-medium text-card-foreground">
             Max Stored Transcriptions
           </h3>
-          <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">
+          <p className="text-xs text-muted-foreground mt-0.5">
             Auto-discards older items when limit is exceeded (1 to 30 items).
           </p>
         </div>
@@ -158,9 +158,9 @@ export default function HistoryTab() {
             max={30}
             value={limit}
             onChange={(e) => handleLimitChange(Number(e.target.value))}
-            className="w-24 accent-indigo-600 cursor-pointer"
+            className="w-24 accent-foreground cursor-pointer"
           />
-          <span className="w-8 text-center text-xs font-mono font-semibold text-slate-700 dark:text-zinc-200 bg-slate-100 dark:bg-zinc-800 py-1 rounded-md border border-slate-200/60 dark:border-zinc-700/60">
+          <span className="w-8 text-center text-xs font-mono font-medium text-card-foreground bg-muted py-1 rounded-md border border-border">
             {limit}
           </span>
         </div>
@@ -169,14 +169,14 @@ export default function HistoryTab() {
       {/* History Item List */}
       <div className="space-y-2.5">
         {loading ? (
-          <div className="text-center py-8 text-xs text-slate-400 dark:text-zinc-500">Loading history...</div>
+          <div className="text-center py-8 text-xs text-muted-foreground">Loading history...</div>
         ) : history.length === 0 ? (
-          <div className="bg-white dark:bg-[#1a1a1a] rounded-2xl border border-dashed border-slate-200 dark:border-zinc-800 p-8 text-center space-y-2">
-            <IconHistory size={36} stroke={1.5} className="text-slate-400 dark:text-zinc-500 mx-auto" />
-            <div className="text-sm font-medium text-slate-700 dark:text-zinc-300">
+          <div className="bg-card rounded-2xl border border-dashed border-border p-8 text-center space-y-2">
+            <IconHistory size={36} stroke={1.5} className="text-muted-foreground mx-auto" />
+            <div className="text-sm font-medium text-card-foreground">
               No transcriptions yet
             </div>
-            <p className="text-xs text-slate-400 dark:text-zinc-500 max-w-xs mx-auto">
+            <p className="text-xs text-muted-foreground max-w-xs mx-auto font-normal">
               Hold or toggle your push-to-talk hotkey to dictate text into any application.
             </p>
           </div>
@@ -184,14 +184,14 @@ export default function HistoryTab() {
           history.map((item) => (
             <div
               key={item.id}
-              className="bg-white dark:bg-[#1a1a1a] rounded-2xl border border-slate-200/80 dark:border-zinc-800/80 p-4 space-y-2.5 shadow-2xs hover:border-slate-300 dark:hover:border-zinc-700 transition-colors group"
+              className="bg-card rounded-2xl border border-border p-4 space-y-2.5 shadow-2xs hover:border-border/80 transition-colors group"
             >
-              <div className="flex items-center justify-between text-xs text-slate-400 dark:text-zinc-400">
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
                 <div className="flex items-center gap-2">
-                  <span className="px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-zinc-800 text-indigo-600 dark:text-indigo-400 border border-indigo-200/50 dark:border-indigo-500/30 font-mono text-[11px] font-medium">
+                  <span className="px-2 py-0.5 rounded-md bg-muted text-foreground border border-border font-mono text-[11px] font-medium">
                     {item.model_id.includes("parakeet") ? "Parakeet TDT" : "Whisper"}
                   </span>
-                  <span className="text-[11px] text-slate-400 dark:text-zinc-500">
+                  <span className="text-[11px] text-muted-foreground">
                     {formatRelativeTime(item.timestamp)}
                   </span>
                 </div>
@@ -200,11 +200,11 @@ export default function HistoryTab() {
                   <button
                     onClick={() => handleCopy(item.id, item.text)}
                     title="Copy text"
-                    className="flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium bg-slate-100 dark:bg-zinc-800 hover:bg-slate-200 dark:hover:bg-zinc-700 text-slate-600 dark:text-zinc-300 border border-transparent dark:border-zinc-700/60 transition-colors cursor-pointer shrink-0 whitespace-nowrap"
+                    className="flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium bg-muted hover:bg-muted/80 text-foreground border border-border transition-colors cursor-pointer shrink-0 whitespace-nowrap"
                   >
                     {copiedId === item.id ? (
                       <>
-                        <IconCheck size={12} stroke={2} className="text-emerald-500" />
+                        <IconCheck size={12} stroke={2} className="text-foreground" />
                         <span className="whitespace-nowrap">Copied</span>
                       </>
                     ) : (
@@ -218,14 +218,14 @@ export default function HistoryTab() {
                   <button
                     onClick={() => handleDelete(item.id)}
                     title="Delete entry"
-                    className="p-1 rounded-md text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer shrink-0"
+                    className="p-1 rounded-md text-muted-foreground hover:text-destructive transition-colors cursor-pointer shrink-0"
                   >
                     <IconTrash size={13} stroke={1.75} />
                   </button>
                 </div>
               </div>
 
-              <p className="text-xs text-slate-800 dark:text-zinc-200 leading-relaxed select-text whitespace-pre-wrap">
+              <p className="text-xs text-card-foreground leading-relaxed select-text whitespace-pre-wrap font-normal">
                 {item.text}
               </p>
             </div>

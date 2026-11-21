@@ -5,7 +5,7 @@ use std::sync::{Arc, Mutex};
 use std::time::Instant;
 use crate::audio::AudioController;
 use whisper_rs::WhisperContext;
-use parakeet_rs::{ParakeetTDT, Nemotron};
+use parakeet_rs::{ParakeetTDT, Nemotron, ParakeetUnified};
 use canary_rs::Canary;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -74,6 +74,9 @@ pub enum LoadedModel {
     Parakeet(Arc<Mutex<ParakeetTDT>>),
     Canary(Arc<Mutex<Canary>>),
     Nemotron(Arc<Mutex<Nemotron>>),
+    Unified(Arc<Mutex<ParakeetUnified>>),
+    Multitalker(Arc<Mutex<crate::transcriber::MultitalkerRunner>>),
+    Moonshine(Arc<Mutex<crate::transcriber::MoonshineRunner>>),
 }
 
 pub struct AppState {
