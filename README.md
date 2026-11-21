@@ -1,6 +1,6 @@
 # Pulse
 
-Website: [pulse-voice-dictation.vercel.app](https://pulse-voice-dictation.vercel.app/)
+Website: [pulse.filekitstudio.com](https://pulse.filekitstudio.com)
 
 Pulse is a local, zero-cloud speech-to-text dictation application for Windows 10 and 11. It runs natively using a Rust backend and Tauri, capturing audio directly from your microphone and injecting transcribed text into whatever text field or editor currently has focus.
 
