@@ -1,0 +1,18 @@
+[package]
+name = "canary-rs"
+version = "0.3.0"
+edition = "2024"
+description = "Rust implementation of NVIDIA Canary ASR/AST using ONNX Runtime"
+license = "MIT"
+
+[dependencies]
+hound = "3.5.1"
+log = "0.4"
+ndarray = "0.17.2"
+rustfft = "6.4.1"
+thiserror = "2.0"
+
+[dependencies.ort]
+version = "=2.0.0-rc.15"
+default-features = false
+features = ["api-28"]

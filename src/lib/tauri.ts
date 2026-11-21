@@ -1,18 +1,24 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 
-export type ModelEngine = "whisper" | "parakeet";
+export type ModelEngine = "whisper" | "parakeet" | "canary" | "nemotron";
 
 export interface ModelInfo {
   id: string;
   name: string;
   filename: string;
+  subtitle: string;
+  description: string;
   size_mb: number;
+  accuracy: number;
+  speed: number;
+  languages: string;
   is_downloaded: boolean;
   is_active: boolean;
-  description: string;
   engine: ModelEngine;
   is_recommended: boolean;
+  is_streaming: boolean;
+  can_translate: boolean;
 }
 
 export interface DownloadProgressPayload {
@@ -41,12 +47,36 @@ export async function downloadModel(modelId: string): Promise<void> {
   return await invoke<void>("download_model", { modelId });
 }
 
+export async function cancelModelDownload(modelId: string): Promise<void> {
+  return await invoke<void>("cancel_model_download", { modelId });
+}
+
 export async function deleteModel(modelId: string): Promise<void> {
   return await invoke<void>("delete_model", { modelId });
 }
 
+export async function openModelFolder(modelId: string): Promise<void> {
+  return await invoke<void>("open_model_folder", { modelId });
+}
+
+export async function onDownloadCancelled(
+  callback: (payload: { model_id: string }) => void
+): Promise<UnlistenFn> {
+  return await listen<{ model_id: string }>("model-download-cancelled", (event) => {
+    callback(event.payload);
+  });
+}
+
 export async function setActiveModel(modelId: string): Promise<void> {
   return await invoke<void>("set_active_model", { modelId });
+}
+
+export async function getCanaryLanguages(): Promise<[string, string]> {
+  return await invoke<[string, string]>("get_canary_languages");
+}
+
+export async function setCanaryLanguages(source: string, target: string): Promise<void> {
+  return await invoke<void>("set_canary_languages", { source, target });
 }
 
 export async function onDownloadProgress(
@@ -203,4 +233,49 @@ export async function setPostProcessHotkey(hotkey: string): Promise<string> {
 
 export async function testPostProcess(sampleText: string): Promise<string> {
   return await invoke<string>("test_postprocess", { sampleText });
+}
+
+export interface AdvancedConfig {
+  start_hidden: boolean;
+  overlay_mode: "live" | "minimal" | "off";
+  overlay_position: "bottom" | "top";
+  unload_model_minutes: number;
+
+  paste_method: "ctrl_v" | "ctrl_shift_v" | "direct_type";
+  clipboard_handling: "restore" | "keep";
+  auto_submit: "off" | "enter" | "ctrl_enter";
+  append_trailing_space: boolean;
+
+  vad_enabled: boolean;
+  remove_filler_words: boolean;
+  custom_words: string[];
+
+  acceleration: "auto" | "gpu" | "cpu";
+  keep_mic_open: boolean;
+}
+
+export async function getAdvancedConfig(): Promise<AdvancedConfig> {
+  return await invoke<AdvancedConfig>("get_advanced_config");
+}
+
+export async function saveAdvancedConfig(config: AdvancedConfig): Promise<void> {
+  return await invoke<void>("save_advanced_config", { config });
+}
+
+export type OverlayTextStyle = "normal" | "italic";
+
+export async function getOverlayTextStyle(): Promise<OverlayTextStyle> {
+  return await invoke<OverlayTextStyle>("get_overlay_text_style");
+}
+
+export async function setOverlayTextStyle(style: OverlayTextStyle): Promise<OverlayTextStyle> {
+  return await invoke<OverlayTextStyle>("set_overlay_text_style", { style });
+}
+
+export async function onOverlayStyleUpdated(
+  callback: (payload: { style: OverlayTextStyle }) => void
+): Promise<UnlistenFn> {
+  return await listen<{ style: OverlayTextStyle }>("overlay-style-updated", (event) => {
+    callback(event.payload);
+  });
 }

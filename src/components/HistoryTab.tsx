@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import {
   getHistory,
   deleteHistoryItem,
@@ -20,25 +20,44 @@ export default function HistoryTab() {
   const [limit, setLimit] = useState<number>(10);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const copyTimeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
+    let unlistenFn: (() => void) | null = null;
+
     Promise.all([getHistory(), getHistoryLimit()])
       .then(([items, lim]) => {
-        setHistory(items);
-        setLimit(lim);
+        if (!cancelled) {
+          setHistory(items);
+          setLimit(lim);
+        }
       })
       .catch((err) => console.error("Failed to load history data:", err))
-      .finally(() => setLoading(false));
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
 
-    let unlisten: (() => void) | undefined;
     onHistoryUpdated((items) => {
-      setHistory(items);
+      if (!cancelled) setHistory(items);
     }).then((fn) => {
-      unlisten = fn;
+      if (cancelled) {
+        fn();
+      } else {
+        unlistenFn = fn;
+      }
     });
 
     return () => {
-      if (unlisten) unlisten();
+      cancelled = true;
+      if (unlistenFn) {
+        unlistenFn();
+        unlistenFn = null;
+      }
+      if (copyTimeoutRef.current !== null) {
+        clearTimeout(copyTimeoutRef.current);
+        copyTimeoutRef.current = null;
+      }
     };
   }, []);
 
@@ -56,7 +75,13 @@ export default function HistoryTab() {
     try {
       await navigator.clipboard.writeText(text);
       setCopiedId(id);
-      setTimeout(() => setCopiedId(null), 2000);
+      if (copyTimeoutRef.current !== null) {
+        clearTimeout(copyTimeoutRef.current);
+      }
+      copyTimeoutRef.current = window.setTimeout(() => {
+        setCopiedId(null);
+        copyTimeoutRef.current = null;
+      }, 2000);
     } catch (err) {
       console.error("Failed to copy text:", err);
     }

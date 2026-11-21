@@ -11,6 +11,7 @@ import {
   IconMicrophone,
   IconPlayerRecord,
 } from "@tabler/icons-react";
+import PrimeButton from "./PrimeButton";
 
 export default function MicTester() {
   const [isOpen, setIsOpen] = useState(false);
@@ -90,18 +91,17 @@ export default function MicTester() {
               <span className="whitespace-nowrap">{testingMic ? "Recording 3s..." : "Test Mic (3s)"}</span>
             </button>
 
-            <button
+            <PrimeButton
               onClick={handleTestTranscribe}
               disabled={isBusy}
-              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors cursor-pointer shrink-0 whitespace-nowrap ${
-                testingTranscribe
-                  ? "bg-indigo-600 text-white animate-pulse"
-                  : "bg-indigo-600 text-white hover:bg-indigo-700"
-              }`}
+              size="sm"
+              className={testingTranscribe ? "animate-pulse" : ""}
             >
               <IconPlayerRecord size={13} stroke={1.75} />
-              <span className="whitespace-nowrap">{testingTranscribe ? "Listening & Transcribing..." : "Test Transcribe (3s)"}</span>
-            </button>
+              <span className="whitespace-nowrap">
+                {testingTranscribe ? "Listening & Transcribing..." : "Test Transcribe (3s)"}
+              </span>
+            </PrimeButton>
           </div>
 
           {error && (

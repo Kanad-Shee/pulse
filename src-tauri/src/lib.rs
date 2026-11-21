@@ -1,3 +1,4 @@
+pub mod advanced;
 pub mod audio;
 pub mod history;
 pub mod injector;
@@ -17,15 +18,59 @@ use tauri::{
 use tauri_plugin_global_shortcut::{Shortcut, ShortcutState};
 use tauri_plugin_store::StoreExt;
 
+fn setup_and_show_overlay(app: &tauri::AppHandle, adv_cfg: &crate::state::AdvancedConfig) {
+    if adv_cfg.overlay_mode == "off" {
+        return;
+    }
+
+    if let Some(overlay) = app.get_webview_window("overlay") {
+        if let Ok(Some(monitor)) = app.primary_monitor() {
+            let size = monitor.size();
+            let scale = monitor.scale_factor();
+            let overlay_width = (440.0 * scale) as i32;
+            let overlay_height = (220.0 * scale) as i32;
+            let x = (size.width as i32 - overlay_width) / 2;
+            let y = if adv_cfg.overlay_position == "top" {
+                (40.0 * scale) as i32
+            } else {
+                size.height as i32 - overlay_height - (50.0 * scale) as i32
+            };
+            let _ = overlay.set_position(
+                tauri::Position::Physical(
+                    tauri::PhysicalPosition { x, y },
+                ),
+            );
+        }
+        let _ = app.emit(
+            "overlay-state",
+            serde_json::json!({ "status": "listening" }),
+        );
+        let _ = app.emit(
+            "overlay-preview",
+            serde_json::json!({ "text": "" }),
+        );
+        let _ = overlay.show(); // do NOT call set_focus()
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
+    #[allow(unused_mut)]
+    let mut builder = tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_store::Builder::default().build())
         .plugin(tauri_plugin_autostart::init(
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
             Some(vec!["--minimized"]),
         ))
+        .plugin(tauri_plugin_process::init());
+
+    #[cfg(desktop)]
+    {
+        builder = builder.plugin(tauri_plugin_updater::Builder::new().build());
+    }
+
+    builder
         .plugin(
             tauri_plugin_global_shortcut::Builder::new()
                 .with_handler(|app, shortcut, event| {
@@ -69,33 +114,11 @@ pub fn run() {
                                         let _ = tray.set_tooltip(Some("Pulse: Listening..."));
                                     }
 
-                                    // Position overlay near bottom-center of primary monitor
-                                    if let Some(overlay) = app.get_webview_window("overlay") {
-                                        if let Ok(Some(monitor)) = app.primary_monitor() {
-                                            let size = monitor.size();
-                                            let scale = monitor.scale_factor();
-                                            let overlay_width = (380.0 * scale) as i32;
-                                            let overlay_height = (180.0 * scale) as i32;
-                                            let x = (size.width as i32 - overlay_width) / 2;
-                                            let y = size.height as i32
-                                                - overlay_height
-                                                - (70.0 * scale) as i32;
-                                            let _ = overlay.set_position(
-                                                tauri::Position::Physical(
-                                                    tauri::PhysicalPosition { x, y },
-                                                ),
-                                            );
-                                        }
-                                        let _ = app.emit(
-                                            "overlay-state",
-                                            serde_json::json!({ "status": "listening" }),
-                                        );
-                                        let _ = app.emit(
-                                            "overlay-preview",
-                                            serde_json::json!({ "text": "" }),
-                                        );
-                                        let _ = overlay.show(); // do NOT call set_focus()
-                                    }
+                                    let adv_cfg = {
+                                        let guard = app_state.advanced_config.lock().unwrap();
+                                        guard.clone()
+                                    };
+                                    setup_and_show_overlay(app, &adv_cfg);
 
                                     let _ = app_state
                                         .audio_controller
@@ -116,15 +139,27 @@ pub fn run() {
 
                                     tauri::async_runtime::spawn(async move {
                                         match audio_res {
-                                            Ok(samples) => {
+                                            Ok(raw_samples) => {
+                                                let state = app_clone.state::<AppState>();
+                                                let adv_cfg = state.advanced_config.lock().unwrap().clone();
+                                                let samples = if adv_cfg.vad_enabled {
+                                                    audio::trim_silence(&raw_samples)
+                                                } else {
+                                                    raw_samples
+                                                };
+
                                                 if !samples.is_empty() {
-                                                    let state = app_clone.state::<AppState>();
                                                     match transcriber::get_or_load_model(
                                                         &app_clone, &state,
                                                     ) {
                                                         Ok((model_id, model)) => {
+                                                            let canary_langs = {
+                                                                let src = state.canary_source_lang.lock().unwrap().clone();
+                                                                let tgt = state.canary_target_lang.lock().unwrap().clone();
+                                                                Some((src, tgt))
+                                                            };
                                                             match transcriber::run_transcription(
-                                                                model, model_id.clone(), samples,
+                                                                model, model_id.clone(), samples, canary_langs, Some(adv_cfg.clone()),
                                                             )
                                                             .await
                                                             {
@@ -178,12 +213,14 @@ pub fn run() {
                                                                         if let Err(e) =
                                                                             injector::inject_text(
                                                                                 &final_text,
+                                                                                &adv_cfg,
                                                                             )
                                                                         {
                                                                             eprintln!(
                                                                                 "Text injection failed: {e}"
                                                                             );
                                                                         }
+                                                                        *state.last_transcription_at.lock().unwrap() = std::time::Instant::now();
                                                                     }
                                                                 }
                                                                 Err(e) => {
@@ -264,76 +301,137 @@ pub fn run() {
                                     let _ = tray.set_tooltip(Some("Pulse: Listening..."));
                                 }
 
-                                if let Some(overlay) = app.get_webview_window("overlay") {
-                                    if let Ok(Some(monitor)) = app.primary_monitor() {
-                                        let size = monitor.size();
-                                        let scale = monitor.scale_factor();
-                                        let overlay_width = (380.0 * scale) as i32;
-                                        let overlay_height = (180.0 * scale) as i32;
-                                        let x = (size.width as i32 - overlay_width) / 2;
-                                        let y = size.height as i32
-                                            - overlay_height
-                                            - (70.0 * scale) as i32;
-                                        let _ = overlay.set_position(
-                                            tauri::Position::Physical(
-                                                tauri::PhysicalPosition { x, y },
-                                            ),
-                                        );
+                                let adv_cfg = {
+                                    let guard = app_state.advanced_config.lock().unwrap();
+                                    guard.clone()
+                                };
+                                setup_and_show_overlay(app, &adv_cfg);
+
+                                let active_model_id = {
+                                    let guard = app_state.active_model_id.lock().unwrap();
+                                    guard.clone()
+                                };
+                                let is_nemotron = active_model_id == "nemotron-streaming-3.5";
+
+                                {
+                                    let mut st = app_state.streaming_transcript.lock().unwrap();
+                                    st.clear();
+                                }
+
+                                if is_nemotron {
+                                    if let Ok((_, ref loaded)) = transcriber::get_or_load_model(&app, &app_state) {
+                                        if let crate::state::LoadedModel::Nemotron(n_mutex) = loaded {
+                                            if let Ok(mut n) = n_mutex.lock() {
+                                                n.reset();
+                                            }
+                                        }
                                     }
-                                    let _ = app.emit(
-                                        "overlay-state",
-                                        serde_json::json!({ "status": "listening" }),
-                                    );
-                                    let _ = app.emit(
-                                        "overlay-preview",
-                                        serde_json::json!({ "text": "" }),
-                                    );
-                                    let _ = overlay.show(); // do NOT call set_focus()
                                 }
 
                                 let _ = app_state
                                     .audio_controller
                                     .start_recording(Some(app.clone()));
 
-                                // Spawn live preview background task
                                 let app_clone = app.clone();
-                                tauri::async_runtime::spawn(async move {
-                                    let mut last_len: usize = 0;
-                                    loop {
-                                        tokio::time::sleep(std::time::Duration::from_millis(900))
-                                            .await;
-                                        let state = app_clone.state::<AppState>();
-                                        if !state.is_recording.load(Ordering::SeqCst) {
-                                            break;
-                                        }
+                                if is_nemotron {
+                                    // True live chunked streaming loop for Nemotron (560ms / 8960 samples per chunk)
+                                    tauri::async_runtime::spawn(async move {
+                                        let mut offset = 0usize;
+                                        let mut accumulated = Vec::<f32>::new();
 
-                                        let snapshot = state.audio_controller.snapshot_samples();
-                                        if snapshot.len() >= last_len + 8000 {
-                                            last_len = snapshot.len();
-                                            if let Ok((model_id, model)) =
-                                                transcriber::get_or_load_model(&app_clone, &state)
-                                            {
-                                                if let Ok(preview_text) =
-                                                    transcriber::run_transcription(
-                                                        model, model_id, snapshot,
-                                                    )
-                                                    .await
-                                                {
-                                                    if state.is_recording.load(Ordering::SeqCst)
-                                                        && !preview_text.trim().is_empty()
-                                                    {
-                                                        let _ = app_clone.emit(
-                                                            "overlay-preview",
-                                                            serde_json::json!({
-                                                                "text": preview_text
-                                                            }),
-                                                        );
+                                        while app_clone.state::<AppState>().is_recording.load(Ordering::SeqCst) {
+                                            tokio::time::sleep(std::time::Duration::from_millis(150)).await;
+                                            let state = app_clone.state::<AppState>();
+                                            if !state.is_recording.load(Ordering::SeqCst) {
+                                                break;
+                                            }
+
+                                            let (new_samples, new_offset) = state.audio_controller.read_since(offset);
+                                            offset = new_offset;
+                                            if !new_samples.is_empty() {
+                                                accumulated.extend_from_slice(&new_samples);
+                                            }
+
+                                            if accumulated.len() >= 8960 {
+                                                if let Ok((_, loaded)) = transcriber::get_or_load_model(&app_clone, &state) {
+                                                    if let crate::state::LoadedModel::Nemotron(nemotron_mutex) = loaded {
+                                                        while accumulated.len() >= 8960 {
+                                                            let chunk: Vec<f32> = accumulated.drain(..8960).collect();
+                                                            if let Ok(part) = transcriber::run_nemotron_chunk(&nemotron_mutex, &chunk) {
+                                                                if !part.is_empty() {
+                                                                    let current_text = {
+                                                                        let mut st = state.streaming_transcript.lock().unwrap();
+                                                                        st.push_str(&part);
+                                                                        st.clone()
+                                                                    };
+                                                                    let show_live = {
+                                                                        let cfg = state.advanced_config.lock().unwrap();
+                                                                        cfg.overlay_mode == "live"
+                                                                    };
+                                                                    if show_live {
+                                                                        let _ = app_clone.emit(
+                                                                            "overlay-preview",
+                                                                            serde_json::json!({ "text": current_text }),
+                                                                        );
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
                                                     }
                                                 }
                                             }
                                         }
-                                    }
-                                });
+                                    });
+                                } else {
+                                    // Snapshot-based preview for non-streaming models
+                                    tauri::async_runtime::spawn(async move {
+                                        let mut last_len: usize = 0;
+                                        loop {
+                                            tokio::time::sleep(std::time::Duration::from_millis(900))
+                                                .await;
+                                            let state = app_clone.state::<AppState>();
+                                            if !state.is_recording.load(Ordering::SeqCst) {
+                                                break;
+                                            }
+
+                                            let snapshot = state.audio_controller.snapshot_samples();
+                                            if snapshot.len() >= last_len + 8000 {
+                                                last_len = snapshot.len();
+                                                let canary_langs = {
+                                                    let src = state.canary_source_lang.lock().unwrap().clone();
+                                                    let tgt = state.canary_target_lang.lock().unwrap().clone();
+                                                    Some((src, tgt))
+                                                };
+                                                if let Ok((model_id, model)) =
+                                                    transcriber::get_or_load_model(&app_clone, &state)
+                                                {
+                                                    if let Ok(preview_text) =
+                                                        transcriber::run_transcription(
+                                                            model, model_id, snapshot, canary_langs, None,
+                                                        )
+                                                        .await
+                                                    {
+                                                        let show_live = {
+                                                            let cfg = state.advanced_config.lock().unwrap();
+                                                            cfg.overlay_mode == "live"
+                                                        };
+                                                        if show_live
+                                                            && state.is_recording.load(Ordering::SeqCst)
+                                                            && !preview_text.trim().is_empty()
+                                                        {
+                                                            let _ = app_clone.emit(
+                                                                "overlay-preview",
+                                                                serde_json::json!({
+                                                                    "text": preview_text
+                                                                }),
+                                                            );
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    });
+                                }
                             } else {
                                 // 2nd click - Stop recording & Inject final text
                                 app_state.is_recording.store(false, Ordering::SeqCst);
@@ -356,82 +454,107 @@ pub fn run() {
 
                                 tauri::async_runtime::spawn(async move {
                                     match audio_res {
-                                        Ok(samples) => {
+                                        Ok(raw_samples) => {
+                                            let state = app_clone.state::<AppState>();
+                                            let adv_cfg = state.advanced_config.lock().unwrap().clone();
+                                            let samples = if adv_cfg.vad_enabled {
+                                                audio::trim_silence(&raw_samples)
+                                            } else {
+                                                raw_samples
+                                            };
+
                                             if !samples.is_empty() {
-                                                let state = app_clone.state::<AppState>();
-                                                match transcriber::get_or_load_model(
-                                                    &app_clone, &state,
-                                                ) {
-                                                    Ok((model_id, model)) => {
-                                                        match transcriber::run_transcription(
-                                                            model, model_id.clone(), samples,
-                                                        )
-                                                        .await
-                                                        {
-                                                            Ok(text) => {
-                                                                if !text.trim().is_empty() {
-                                                                    let trimmed =
-                                                                        text.trim().to_string();
-                                                                    let uses_post = state
-                                                                        .active_recording_uses_postprocess
-                                                                        .load(Ordering::SeqCst);
+                                                let active_model_id = state.active_model_id.lock().unwrap().clone();
+                                                let is_nemotron = active_model_id == "nemotron-streaming-3.5";
 
-                                                                    let final_text = if uses_post {
-                                                                        if let Some(tray) =
-                                                                            app_clone
-                                                                                .tray_by_id("main")
-                                                                        {
-                                                                            let _ = tray.set_tooltip(Some("Pulse: Polishing..."));
-                                                                        }
-                                                                        let _ = app_clone.emit(
-                                                                            "overlay-state",
-                                                                            serde_json::json!({ "status": "polishing" }),
-                                                                        );
-
-                                                                        let config = state
-                                                                            .postprocess_config
-                                                                            .lock()
-                                                                            .unwrap()
-                                                                            .clone();
-                                                                        let polished = postprocess::run_postprocess(&trimmed, &config).await;
-                                                                        if polished
-                                                                            .trim()
-                                                                            .is_empty()
-                                                                        {
-                                                                            trimmed
-                                                                        } else {
-                                                                            polished
-                                                                        }
-                                                                    } else {
-                                                                        trimmed
-                                                                    };
-
-                                                                    history::add_history_entry(
-                                                                        &app_clone,
-                                                                        &state,
-                                                                        final_text.clone(),
-                                                                        model_id,
-                                                                    );
-                                                                    if let Err(e) =
-                                                                        injector::inject_text(
-                                                                            &final_text,
-                                                                        )
-                                                                    {
-                                                                        eprintln!(
-                                                                            "Text injection failed: {e}"
-                                                                        );
-                                                                    }
-                                                                }
+                                                let transcription_result = if is_nemotron {
+                                                    let streamed = state.streaming_transcript.lock().unwrap().clone();
+                                                    if !streamed.trim().is_empty() {
+                                                        Ok(streamed)
+                                                    } else {
+                                                        match transcriber::get_or_load_model(&app_clone, &state) {
+                                                            Ok((model_id, model)) => {
+                                                                transcriber::run_transcription(model, model_id, samples, None, Some(adv_cfg.clone())).await
                                                             }
-                                                            Err(e) => {
+                                                            Err(e) => Err(e),
+                                                        }
+                                                    }
+                                                } else {
+                                                    let canary_langs = {
+                                                        let src = state.canary_source_lang.lock().unwrap().clone();
+                                                        let tgt = state.canary_target_lang.lock().unwrap().clone();
+                                                        Some((src, tgt))
+                                                    };
+                                                    match transcriber::get_or_load_model(&app_clone, &state) {
+                                                        Ok((model_id, model)) => {
+                                                            transcriber::run_transcription(model, model_id, samples, canary_langs, Some(adv_cfg.clone())).await
+                                                        }
+                                                        Err(e) => Err(e),
+                                                    }
+                                                };
+
+                                                match transcription_result {
+                                                    Ok(text) => {
+                                                        if !text.trim().is_empty() {
+                                                            let trimmed =
+                                                                text.trim().to_string();
+                                                            let uses_post = state
+                                                                .active_recording_uses_postprocess
+                                                                .load(Ordering::SeqCst);
+
+                                                            let final_text = if uses_post {
+                                                                if let Some(tray) =
+                                                                    app_clone
+                                                                        .tray_by_id("main")
+                                                                {
+                                                                    let _ = tray.set_tooltip(Some("Pulse: Polishing..."));
+                                                                }
+                                                                let _ = app_clone.emit(
+                                                                    "overlay-state",
+                                                                    serde_json::json!({ "status": "polishing" }),
+                                                                );
+
+                                                                let config = state
+                                                                    .postprocess_config
+                                                                    .lock()
+                                                                    .unwrap()
+                                                                    .clone();
+                                                                let polished = postprocess::run_postprocess(&trimmed, &config).await;
+                                                                if polished
+                                                                    .trim()
+                                                                    .is_empty()
+                                                                {
+                                                                    trimmed
+                                                                } else {
+                                                                    polished
+                                                                }
+                                                            } else {
+                                                                trimmed
+                                                            };
+
+                                                            history::add_history_entry(
+                                                                &app_clone,
+                                                                &state,
+                                                                final_text.clone(),
+                                                                active_model_id,
+                                                            );
+                                                            if let Err(e) =
+                                                                injector::inject_text(
+                                                                    &final_text,
+                                                                    &adv_cfg,
+                                                                )
+                                                            {
                                                                 eprintln!(
-                                                                    "Transcription failed: {e}"
+                                                                    "Text injection failed: {e}"
                                                                 );
                                                             }
+                                                            *state.last_transcription_at.lock().unwrap() = std::time::Instant::now();
                                                         }
                                                     }
                                                     Err(e) => {
-                                                        eprintln!("Model load failed: {e}");
+                                                        eprintln!(
+                                                            "Transcription failed: {e}"
+                                                        );
                                                     }
                                                 }
                                             }
@@ -590,6 +713,93 @@ pub fn run() {
                 }
             }
 
+            // Restore Canary language pair from settings.json
+            if let Ok(store) = app.store("settings.json") {
+                if let Some(src) = store.get("canary_source_lang") {
+                    if let Some(s) = src.as_str() {
+                        let state = app.state::<AppState>();
+                        if let Ok(mut guard) = state.canary_source_lang.lock() {
+                            *guard = s.to_string();
+                        }
+                    }
+                }
+                if let Some(tgt) = store.get("canary_target_lang") {
+                    if let Some(s) = tgt.as_str() {
+                        let state = app.state::<AppState>();
+                        if let Ok(mut guard) = state.canary_target_lang.lock() {
+                            *guard = s.to_string();
+                        }
+                    }
+                }
+            }
+
+            // Restore Advanced config from settings.json
+            let adv_cfg = if let Ok(store) = app.store("settings.json") {
+                if let Some(val) = store.get("advanced") {
+                    serde_json::from_value::<crate::state::AdvancedConfig>(val).unwrap_or_default()
+                } else {
+                    crate::state::AdvancedConfig::default()
+                }
+            } else {
+                crate::state::AdvancedConfig::default()
+            };
+
+            {
+                let state = app.state::<AppState>();
+                state.audio_controller.set_keep_mic_open(adv_cfg.keep_mic_open);
+                if let Ok(mut guard) = state.advanced_config.lock() {
+                    *guard = adv_cfg.clone();
+                }
+            }
+
+            // Restore overlay text style ("normal" | "italic")
+            let overlay_style = if let Ok(store) = app.store("settings.json") {
+                store
+                    .get("overlay_text_style")
+                    .and_then(|v| v.as_str().map(|s| s.to_string()))
+                    .unwrap_or_else(|| "normal".to_string())
+            } else {
+                "normal".to_string()
+            };
+            {
+                let state = app.state::<AppState>();
+                if let Ok(mut guard) = state.overlay_text_style.lock() {
+                    *guard = overlay_style;
+                }
+            }
+
+            // Show settings window on startup unless start_hidden is true
+            if !adv_cfg.start_hidden {
+                if let Some(window) = app.get_webview_window("settings") {
+                    let _ = window.show();
+                }
+            }
+
+            // Spawn auto-unload background timer checking every 60 seconds
+            let app_handle_for_unload = app.handle().clone();
+            tauri::async_runtime::spawn(async move {
+                loop {
+                    tokio::time::sleep(std::time::Duration::from_secs(60)).await;
+                    let state = app_handle_for_unload.state::<AppState>();
+                    let unload_mins = {
+                        let cfg = state.advanced_config.lock().unwrap();
+                        cfg.unload_model_minutes
+                    };
+                    if unload_mins > 0 {
+                        let is_recording = state.is_recording.load(Ordering::SeqCst);
+                        if !is_recording {
+                            let last_at = *state.last_transcription_at.lock().unwrap();
+                            if last_at.elapsed() >= std::time::Duration::from_secs(unload_mins * 60) {
+                                let mut cached = state.cached_context.lock().unwrap();
+                                if cached.is_some() {
+                                    *cached = None;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
             let copy_last_item = MenuItem::with_id(
                 app,
                 "copy_last",
@@ -668,8 +878,12 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             models::list_models,
             models::download_model,
+            models::cancel_model_download,
             models::delete_model,
+            models::open_model_folder,
             models::set_active_model,
+            models::get_canary_languages,
+            models::set_canary_languages,
             audio::start_recording,
             audio::stop_recording,
             audio::test_microphone,
@@ -690,6 +904,10 @@ pub fn run() {
             postprocess::fetch_postprocess_models,
             postprocess::set_postprocess_hotkey,
             postprocess::test_postprocess,
+            advanced::get_advanced_config,
+            advanced::save_advanced_config,
+            advanced::get_overlay_text_style,
+            advanced::set_overlay_text_style,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -1,22 +1,41 @@
 import React, { useEffect, useState } from "react";
 import { getStoredTheme, setStoredTheme, type Theme } from "../lib/theme";
 import { enable, disable, isEnabled } from "@tauri-apps/plugin-autostart";
+import {
+  getOverlayTextStyle,
+  setOverlayTextStyle,
+  type OverlayTextStyle,
+} from "../lib/tauri";
 import { IconSun, IconMoon, IconDeviceDesktop } from "@tabler/icons-react";
 
 export default function GeneralTab() {
   const [theme, setTheme] = useState<Theme>(getStoredTheme());
   const [autostart, setAutostart] = useState<boolean>(false);
   const [autostartLoading, setAutostartLoading] = useState<boolean>(false);
+  const [textStyle, setTextStyle] = useState<OverlayTextStyle>("normal");
 
   useEffect(() => {
     isEnabled()
       .then((enabled) => setAutostart(enabled))
       .catch((err) => console.warn("Failed to check autostart status:", err));
+
+    getOverlayTextStyle()
+      .then((s) => setTextStyle(s))
+      .catch((err) => console.warn("Failed to check overlay text style:", err));
   }, []);
 
   const handleThemeChange = (newTheme: Theme) => {
     setTheme(newTheme);
     setStoredTheme(newTheme);
+  };
+
+  const handleTextStyleChange = async (newStyle: OverlayTextStyle) => {
+    setTextStyle(newStyle);
+    try {
+      await setOverlayTextStyle(newStyle);
+    } catch (err) {
+      console.error("Failed to update overlay text style:", err);
+    }
   };
 
   const handleToggleAutostart = async () => {
@@ -85,6 +104,43 @@ export default function GeneralTab() {
         </div>
       </div>
 
+      {/* Overlay Text Style */}
+      <div className="bg-white dark:bg-[#1a1a1a] rounded-2xl border border-slate-200/90 dark:border-zinc-800/90 p-4.5 space-y-3 shadow-xs">
+        <div>
+          <h3 className="text-sm font-medium text-slate-900 dark:text-zinc-100">
+            Overlay Text Style
+          </h3>
+          <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">
+            Choose whether dictated preview text appears normal upright or italicized.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2 bg-slate-100 dark:bg-zinc-900/90 p-1 rounded-xl border border-slate-200/60 dark:border-zinc-800">
+          <button
+            type="button"
+            onClick={() => handleTextStyleChange("normal")}
+            className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-medium transition-all cursor-pointer shrink-0 whitespace-nowrap ${
+              textStyle === "normal"
+                ? "bg-white dark:bg-zinc-800 text-slate-900 dark:text-zinc-100 border border-slate-200/50 dark:border-indigo-500/40 shadow-xs font-semibold"
+                : "text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-200"
+            }`}
+          >
+            <span className="not-italic font-normal">Normal</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => handleTextStyleChange("italic")}
+            className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-medium transition-all cursor-pointer shrink-0 whitespace-nowrap ${
+              textStyle === "italic"
+                ? "bg-white dark:bg-zinc-800 text-slate-900 dark:text-zinc-100 border border-slate-200/50 dark:border-indigo-500/40 shadow-xs font-semibold"
+                : "text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-200"
+            }`}
+          >
+            <span className="italic font-normal">Italic</span>
+          </button>
+        </div>
+      </div>
+
       {/* Start at Login */}
       <div className="bg-white dark:bg-[#1a1a1a] rounded-2xl border border-slate-200/90 dark:border-zinc-800/90 p-4.5 shadow-xs flex items-center justify-between">
         <div>
@@ -118,10 +174,10 @@ export default function GeneralTab() {
       <div className="bg-white dark:bg-[#1a1a1a] rounded-2xl border border-slate-200/90 dark:border-zinc-800/90 p-4.5 space-y-2.5 shadow-xs text-xs text-slate-500 dark:text-zinc-400">
         <div className="flex items-center justify-between text-slate-700 dark:text-zinc-300 font-medium">
           <div className="flex items-center gap-2">
-            <img src="/pulse-logo.png" alt="Pulse" className="w-4 h-4 rounded-md object-contain shrink-0" />
+            <img src="/pulse-logo.png" alt="Pulse" className="w-4 h-4 object-contain shrink-0" />
             <span>Pulse for Windows</span>
           </div>
-          <span className="font-mono text-slate-400 dark:text-zinc-500">v1.0.0</span>
+          <span className="font-mono text-slate-400 dark:text-zinc-500">v1.1.0</span>
         </div>
         <p className="leading-relaxed">
           100% on-device speech-to-text dictation. Audio is captured locally and

@@ -12,6 +12,8 @@ pub enum AudioCommand {
     Start(Sender<Result<(), String>>, Option<AppHandle>),
     Stop(Sender<Result<Vec<f32>, String>>),
     Snapshot(Sender<Vec<f32>>),
+    ReadSince(usize, Sender<(Vec<f32>, usize)>),
+    SetKeepMicOpen(bool),
 }
 
 #[derive(Clone)]
@@ -31,6 +33,10 @@ impl AudioController {
             .expect("Failed to spawn audio worker thread");
 
         Self { tx }
+    }
+
+    pub fn set_keep_mic_open(&self, enabled: bool) {
+        let _ = self.tx.send(AudioCommand::SetKeepMicOpen(enabled));
     }
 
     pub fn start_recording(&self, app_handle: Option<AppHandle>) -> Result<(), String> {
@@ -60,20 +66,49 @@ impl AudioController {
         }
         reply_rx.recv().unwrap_or_default()
     }
+
+    pub fn read_since(&self, offset: usize) -> (Vec<f32>, usize) {
+        let (reply_tx, reply_rx) = mpsc::channel();
+        if self.tx.send(AudioCommand::ReadSince(offset, reply_tx)).is_err() {
+            return (Vec::new(), offset);
+        }
+        reply_rx.recv().unwrap_or((Vec::new(), offset))
+    }
 }
 
 fn run_audio_worker(rx: Receiver<AudioCommand>) {
-    #[allow(unused_assignments)]
-    let mut _current_stream: Option<cpal::Stream> = None;
+    let mut current_stream: Option<cpal::Stream> = None;
     let mut current_buffer: Option<Arc<Mutex<Vec<f32>>>> = None;
     let mut current_sample_rate: u32 = 16000;
+    let mut keep_mic_open = false;
+    let is_capturing = Arc::new(std::sync::atomic::AtomicBool::new(false));
 
     while let Ok(cmd) = rx.recv() {
         match cmd {
+            AudioCommand::SetKeepMicOpen(enabled) => {
+                keep_mic_open = enabled;
+                if !enabled && !is_capturing.load(std::sync::atomic::Ordering::Relaxed) {
+                    current_stream = None;
+                    current_buffer = None;
+                }
+            }
             AudioCommand::Start(reply, app_handle) => {
-                // Drop any existing stream first
-                _current_stream = None;
+                // If stream is already alive from keep_mic_open, just clear buffer & start capturing
+                if keep_mic_open && current_stream.is_some() {
+                    if let Some(ref buf_arc) = current_buffer {
+                        if let Ok(mut buf) = buf_arc.lock() {
+                            buf.clear();
+                        }
+                    }
+                    is_capturing.store(true, std::sync::atomic::Ordering::SeqCst);
+                    let _ = reply.send(Ok(()));
+                    continue;
+                }
+
+                // Drop any stale stream before building new one
+                current_stream = None;
                 current_buffer = None;
+                is_capturing.store(false, std::sync::atomic::Ordering::SeqCst);
 
                 let host = cpal::default_host();
                 let device = match host.default_input_device() {
@@ -98,15 +133,20 @@ fn run_audio_worker(rx: Receiver<AudioCommand>) {
                 let buf_clone = Arc::clone(&buffer);
 
                 let last_emit = Arc::new(Mutex::new(Instant::now()));
+                let is_capturing_clone = Arc::clone(&is_capturing);
 
                 let sample_format = default_config.sample_format();
                 let stream_result = match sample_format {
                     cpal::SampleFormat::F32 => {
                         let app_opt = app_handle.clone();
                         let last_emit_clone = Arc::clone(&last_emit);
+                        let is_capturing_cb = Arc::clone(&is_capturing_clone);
                         device.build_input_stream(
                             &default_config.into(),
                             move |data: &[f32], _: &cpal::InputCallbackInfo| {
+                                if !is_capturing_cb.load(std::sync::atomic::Ordering::Relaxed) {
+                                    return;
+                                }
                                 if let Ok(mut buf) = buf_clone.lock() {
                                     let mut frame_sum_sq: f32 = 0.0;
                                     let mut frame_count: usize = 0;
@@ -149,9 +189,13 @@ fn run_audio_worker(rx: Receiver<AudioCommand>) {
                         let buf_clone = Arc::clone(&buffer);
                         let app_opt = app_handle.clone();
                         let last_emit_clone = Arc::clone(&last_emit);
+                        let is_capturing_cb = Arc::clone(&is_capturing_clone);
                         device.build_input_stream(
                             &default_config.into(),
                             move |data: &[i16], _: &cpal::InputCallbackInfo| {
+                                if !is_capturing_cb.load(std::sync::atomic::Ordering::Relaxed) {
+                                    return;
+                                }
                                 if let Ok(mut buf) = buf_clone.lock() {
                                     let mut frame_sum_sq: f32 = 0.0;
                                     let mut frame_count: usize = 0;
@@ -195,9 +239,13 @@ fn run_audio_worker(rx: Receiver<AudioCommand>) {
                         let buf_clone = Arc::clone(&buffer);
                         let app_opt = app_handle.clone();
                         let last_emit_clone = Arc::clone(&last_emit);
+                        let is_capturing_cb = Arc::clone(&is_capturing_clone);
                         device.build_input_stream(
                             &default_config.into(),
                             move |data: &[u16], _: &cpal::InputCallbackInfo| {
+                                if !is_capturing_cb.load(std::sync::atomic::Ordering::Relaxed) {
+                                    return;
+                                }
                                 if let Ok(mut buf) = buf_clone.lock() {
                                     let mut frame_sum_sq: f32 = 0.0;
                                     let mut frame_count: usize = 0;
@@ -259,20 +307,34 @@ fn run_audio_worker(rx: Receiver<AudioCommand>) {
                     continue;
                 }
 
-                _current_stream = Some(stream);
+                is_capturing.store(true, std::sync::atomic::Ordering::SeqCst);
+                current_stream = Some(stream);
                 current_buffer = Some(buffer);
                 let _ = reply.send(Ok(()));
             }
             AudioCommand::Stop(reply) => {
-                // Stop and drop the stream to release the Windows microphone
-                _current_stream = None;
+                is_capturing.store(false, std::sync::atomic::Ordering::SeqCst);
 
-                let raw_samples = match current_buffer.take() {
-                    Some(buf_arc) => match Arc::try_unwrap(buf_arc) {
-                        Ok(mutex) => mutex.into_inner().unwrap_or_default(),
-                        Err(shared) => shared.lock().map(|g| g.clone()).unwrap_or_default(),
-                    },
-                    None => Vec::new(),
+                let raw_samples = if keep_mic_open {
+                    if let Some(ref buf_arc) = current_buffer {
+                        let mut g = buf_arc.lock().unwrap_or_else(|e| e.into_inner());
+                        let samples = g.clone();
+                        g.clear();
+                        samples
+                    } else {
+                        Vec::new()
+                    }
+                } else {
+                    // Stop and drop the stream to release the Windows microphone
+                    current_stream = None;
+
+                    match current_buffer.take() {
+                        Some(buf_arc) => match Arc::try_unwrap(buf_arc) {
+                            Ok(mutex) => mutex.into_inner().unwrap_or_default(),
+                            Err(shared) => shared.lock().map(|g| g.clone()).unwrap_or_default(),
+                        },
+                        None => Vec::new(),
+                    }
                 };
 
                 let resampled = resample_to_16k(&raw_samples, current_sample_rate);
@@ -285,6 +347,20 @@ fn run_audio_worker(rx: Receiver<AudioCommand>) {
                 };
                 let resampled = resample_to_16k(&raw_samples, current_sample_rate);
                 let _ = reply.send(resampled);
+            }
+            AudioCommand::ReadSince(offset, reply) => {
+                let raw_samples = match current_buffer {
+                    Some(ref buf_arc) => buf_arc.lock().map(|g| g.clone()).unwrap_or_default(),
+                    None => Vec::new(),
+                };
+                let resampled = resample_to_16k(&raw_samples, current_sample_rate);
+                let total = resampled.len();
+                if offset < total {
+                    let chunk = resampled[offset..].to_vec();
+                    let _ = reply.send((chunk, total));
+                } else {
+                    let _ = reply.send((Vec::new(), total));
+                }
             }
         }
     }
@@ -316,6 +392,42 @@ pub fn resample_to_16k(input: &[f32], source_rate: u32) -> Vec<f32> {
     }
 
     output
+}
+
+pub fn trim_silence(samples: &[f32]) -> Vec<f32> {
+    if samples.is_empty() {
+        return Vec::new();
+    }
+
+    let window_size = 480; // 30ms @ 16kHz
+    let threshold: f32 = 0.012; // ~ -38 dB
+    let mut first_speech_idx: Option<usize> = None;
+    let mut last_speech_idx: Option<usize> = None;
+
+    for (i, chunk) in samples.chunks(window_size).enumerate() {
+        let sum_sq: f32 = chunk.iter().map(|&s| s * s).sum();
+        let rms = (sum_sq / chunk.len() as f32).sqrt();
+        if rms >= threshold {
+            let start = i * window_size;
+            let end = (start + chunk.len()).min(samples.len());
+            if first_speech_idx.is_none() {
+                first_speech_idx = Some(start);
+            }
+            last_speech_idx = Some(end);
+        }
+    }
+
+    match (first_speech_idx, last_speech_idx) {
+        (Some(start), Some(end)) if end > start => {
+            // Keep 100ms (1600 samples) pre-speech and 200ms (3200 samples) post-speech
+            let pre_pad = 1600;
+            let post_pad = 3200;
+            let safe_start = start.saturating_sub(pre_pad);
+            let safe_end = (end + post_pad).min(samples.len());
+            samples[safe_start..safe_end].to_vec()
+        }
+        _ => Vec::new(),
+    }
 }
 
 #[derive(Serialize)]

@@ -110,10 +110,10 @@ pub async fn cancel_recording(
         let _ = tray.set_tooltip(Some("Pulse: Ready"));
     }
 
+    let _ = app.emit("overlay-state", serde_json::json!({ "status": "idle" }));
+
     if let Some(overlay) = app.get_webview_window("overlay") {
         let _ = overlay.hide();
     }
-
-    let _ = app.emit("overlay-state", serde_json::json!({ "status": "idle" }));
     Ok(())
 }

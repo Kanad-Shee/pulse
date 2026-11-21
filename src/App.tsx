@@ -5,6 +5,8 @@ import PostProcessPanel from "./components/PostProcessPanel";
 import ModelManager from "./components/ModelManager";
 import MicTester from "./components/MicTester";
 import HistoryTab from "./components/HistoryTab";
+import AdvancedPanel from "./components/AdvancedPanel";
+import AboutPanel from "./components/AboutPanel";
 import { getStoredTheme, setStoredTheme, type Theme } from "./lib/theme";
 import {
   IconSettings,
@@ -12,12 +14,14 @@ import {
   IconSparkles,
   IconCpu,
   IconHistory,
+  IconAdjustments,
+  IconInfoCircle,
   IconSun,
   IconMoon,
   IconDeviceDesktop,
 } from "@tabler/icons-react";
 
-type TabId = "general" | "shortcut" | "postprocess" | "models" | "history";
+type TabId = "general" | "shortcut" | "postprocess" | "models" | "history" | "advanced" | "about";
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<TabId>("general");
@@ -36,6 +40,8 @@ export default function App() {
     { id: "postprocess", label: "Post-Process", icon: <IconSparkles size={18} stroke={1.75} /> },
     { id: "models", label: "Models", icon: <IconCpu size={18} stroke={1.75} /> },
     { id: "history", label: "History", icon: <IconHistory size={18} stroke={1.75} /> },
+    { id: "advanced", label: "Advanced", icon: <IconAdjustments size={18} stroke={1.75} /> },
+    { id: "about", label: "About", icon: <IconInfoCircle size={18} stroke={1.75} /> },
   ];
 
   const renderThemeIcon = () => {
@@ -59,7 +65,7 @@ export default function App() {
             <img
               src="/pulse-logo.png"
               alt="Pulse Logo"
-              className="w-8 h-8 rounded-xl object-contain shadow-2xs shrink-0"
+              className="w-8 h-8 object-contain shrink-0"
             />
             <div>
               <div className="flex items-center gap-1.5">
@@ -132,6 +138,8 @@ export default function App() {
             </div>
           )}
           {activeTab === "history" && <HistoryTab />}
+          {activeTab === "advanced" && <AdvancedPanel />}
+          {activeTab === "about" && <AboutPanel />}
         </div>
       </main>
     </div>

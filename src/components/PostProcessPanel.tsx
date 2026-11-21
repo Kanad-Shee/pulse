@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
   getPostProcessConfig,
   savePostProcessConfig,
@@ -21,6 +21,7 @@ import {
   IconInfoCircle,
   IconPlayerPlay,
 } from "@tabler/icons-react";
+import PrimeButton from "./PrimeButton";
 
 export default function PostProcessPanel() {
   const [config, setConfig] = useState<PostProcessConfig | null>(null);
@@ -28,6 +29,7 @@ export default function PostProcessPanel() {
   const [saving, setSaving] = useState<boolean>(false);
   const [saveSuccess, setSaveSuccess] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const saveTimeoutRef = useRef<number | null>(null);
 
   // Hotkey recording states
   const [isRecordingHotkey, setIsRecordingHotkey] = useState<boolean>(false);
@@ -50,19 +52,32 @@ export default function PostProcessPanel() {
 
   // Load config on mount
   useEffect(() => {
+    let cancelled = false;
     getPostProcessConfig()
       .then((cfg) => {
-        setConfig(cfg);
-        setLoading(false);
-        // Automatically try to fetch models if baseUrl is available
-        if (cfg.base_url) {
-          loadModels(cfg.base_url, cfg.api_key, cfg.model);
+        if (!cancelled) {
+          setConfig(cfg);
+          setLoading(false);
+          // Automatically try to fetch models if baseUrl is available
+          if (cfg.base_url) {
+            loadModels(cfg.base_url, cfg.api_key, cfg.model);
+          }
         }
       })
       .catch((err) => {
-        setError(typeof err === "string" ? err : "Failed to load post-process config");
-        setLoading(false);
+        if (!cancelled) {
+          setError(typeof err === "string" ? err : "Failed to load post-process config");
+          setLoading(false);
+        }
       });
+
+    return () => {
+      cancelled = true;
+      if (saveTimeoutRef.current !== null) {
+        clearTimeout(saveTimeoutRef.current);
+        saveTimeoutRef.current = null;
+      }
+    };
   }, []);
 
   const loadModels = async (baseUrl: string, apiKey: string, currentModel?: string) => {
@@ -186,7 +201,13 @@ export default function PostProcessPanel() {
       setError(null);
       await savePostProcessConfig(toSave);
       setSaveSuccess(true);
-      setTimeout(() => setSaveSuccess(false), 2000);
+      if (saveTimeoutRef.current !== null) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+      saveTimeoutRef.current = window.setTimeout(() => {
+        setSaveSuccess(false);
+        saveTimeoutRef.current = null;
+      }, 2000);
     } catch (err) {
       setError(typeof err === "string" ? err : "Failed to save configuration");
     } finally {
@@ -557,15 +578,14 @@ export default function PostProcessPanel() {
             <span>Saved successfully</span>
           </span>
         )}
-        <button
-          type="button"
+        <PrimeButton
           onClick={() => handleSave()}
           disabled={saving}
-          className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-medium bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white shadow-xs transition-colors cursor-pointer disabled:opacity-50 shrink-0 whitespace-nowrap"
+          size="default"
         >
           <IconDeviceFloppy size={14} stroke={2} className="shrink-0" />
           <span className="whitespace-nowrap">{saving ? "Saving..." : "Save Settings"}</span>
-        </button>
+        </PrimeButton>
       </div>
 
       {/* 4. Test Post-Processing Card */}
@@ -588,8 +608,7 @@ export default function PostProcessPanel() {
             placeholder="Type sample text to format..."
             className="flex-1 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-zinc-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
           />
-          <button
-            type="button"
+          <PrimeButton
             onClick={async () => {
               if (!testInput.trim() || testRunning) return;
               setTestRunning(true);
@@ -609,7 +628,7 @@ export default function PostProcessPanel() {
               }
             }}
             disabled={testRunning || !testInput.trim()}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-medium bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white shadow-xs transition-colors cursor-pointer disabled:opacity-50 shrink-0 whitespace-nowrap"
+            size="default"
           >
             {testRunning ? (
               <IconRefresh size={13} className="animate-spin shrink-0" />
@@ -617,7 +636,7 @@ export default function PostProcessPanel() {
               <IconPlayerPlay size={13} stroke={2} className="shrink-0" />
             )}
             <span className="whitespace-nowrap">{testRunning ? "Testing..." : "Run Test"}</span>
-          </button>
+          </PrimeButton>
         </div>
 
         {testError && (
